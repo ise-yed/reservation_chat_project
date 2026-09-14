@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B"]
+# E,W = pycodestyle | F = pyflakes (باگ‌ها) | I = import sorting | B = bugbear (اشتباهات رایج)
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ruff check .        # پیدا کردن مشکلات
+# ruff check . --fix  # رفع خودکار مشکلات قابل‌رفع
+# ruff format .       # فرمت کردن کل کد

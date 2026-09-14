@@ -1,0 +1,4 @@
+-r base.txt
+
+ruff
+pre-commit==4.6.0
