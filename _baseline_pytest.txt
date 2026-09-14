@@ -1,0 +1,294 @@
+﻿...................................................................FFFFF [ 25%]
+F..............FFF......F............................................... [ 50%]
+........................................................................ [ 75%]
+.......................................................................  [100%]
+================================== FAILURES ===================================
+_________________ TestRegisterView.test_register_user_success _________________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F7D6D0>
+
+    def test_register_user_success(self):
+        """Test successful user registration."""
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "newuser@example.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "phone_number": "09123456789",
+            "role": UserRoles.CUSTOMER,
+            "password": "StrongPass123!",
+            "password_confirm": "StrongPass123!",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_201_CREATED
+E       assert 429 == 201
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   201 = status.HTTP_201_CREATED
+
+apps\authentication\tests\test_authentication_views.py:35: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+_____________ TestRegisterView.test_register_user_missing_fields ______________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F7D450>
+
+    def test_register_user_missing_fields(self):
+        """Test registration fails with missing required fields."""
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "newuser@example.com",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:53: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+_________ TestRegisterView.test_register_user_passwords_do_not_match __________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F1F5C0>
+
+    def test_register_user_passwords_do_not_match(self):
+        """Test registration fails when passwords don't match."""
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "newuser@example.com",
+            "password": "StrongPass123!",
+            "password_confirm": "DifferentPass456!",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:71: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+_____________ TestRegisterView.test_register_user_duplicate_email _____________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F1F6F0>
+
+    def test_register_user_duplicate_email(self):
+        """Test registration fails with duplicate email."""
+        UserFactory(email="existing@example.com")
+    
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "existing@example.com",
+            "password": "StrongPass123!",
+            "password_confirm": "StrongPass123!",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:90: AssertionError
+---------------------------- Captured stderr call -----------------------------
+DEBUG:factory.generate:Sequence: Computing next value of <function UserFactory.<lambda> at 0x000001F969ECEB90> for seq=95
+DEBUG:factory.generate:PostGeneration: Calling apps.users.tests.factories.password(<User: existing@example.com>, <BuildStep for <StepBuilder(<DjangoOptions for UserFactory>, strategy='create')>>, value_provided=False, value=None, extra={})
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+DEBUG    factory.generate:declarations.py:290 Sequence: Computing next value of <function UserFactory.<lambda> at 0x000001F969ECEB90> for seq=95
+DEBUG    factory.generate:declarations.py:673 PostGeneration: Calling apps.users.tests.factories.password(<User: existing@example.com>, <BuildStep for <StepBuilder(<DjangoOptions for UserFactory>, strategy='create')>>, value_provided=False, value=None, extra={})
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+______________ TestRegisterView.test_register_user_invalid_role _______________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F51A30>
+
+    def test_register_user_invalid_role(self):
+        """Test registration fails with invalid role."""
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "newuser@example.com",
+            "role": "invalid_role",
+            "password": "StrongPass123!",
+            "password_confirm": "StrongPass123!",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:108: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+______________ TestRegisterView.test_register_user_weak_password ______________
+
+self = <apps.authentication.tests.test_authentication_views.TestRegisterView object at 0x000001F969F9C5A0>
+
+    def test_register_user_weak_password(self):
+        """Test registration fails with weak password."""
+        client = APIClient()
+        url = reverse("authentication:register")
+    
+        payload = {
+            "email": "newuser@example.com",
+            "password": "123",
+            "password_confirm": "123",
+        }
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:125: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+______ TestPasswordResetRequestView.test_password_reset_request_success _______
+
+self = <apps.authentication.tests.test_authentication_views.TestPasswordResetRequestView object at 0x000001F969F7DF90>
+mock_send_email = <MagicMock name='request_password_reset' id='2170781875040'>
+
+    @patch("apps.authentication.api.v1.views.authentication.request_password_reset")
+    def test_password_reset_request_success(self, mock_send_email):
+        """Test successful password reset request."""
+        user = UserFactory(email="reset@example.com", is_active=True)
+    
+        client = APIClient()
+        url = reverse("authentication:password_reset")
+    
+        payload = {"email": "reset@example.com"}
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_200_OK
+E       assert 429 == 200
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   200 = status.HTTP_200_OK
+
+apps\authentication\tests\test_authentication_views.py:399: AssertionError
+---------------------------- Captured stderr call -----------------------------
+DEBUG:factory.generate:Sequence: Computing next value of <function UserFactory.<lambda> at 0x000001F969ECEB90> for seq=105
+DEBUG:factory.generate:PostGeneration: Calling apps.users.tests.factories.password(<User: reset@example.com>, <BuildStep for <StepBuilder(<DjangoOptions for UserFactory>, strategy='create')>>, value_provided=False, value=None, extra={})
+WARNING:django.request:Too Many Requests: /api/v1/auth/password-reset/
+------------------------------ Captured log call ------------------------------
+DEBUG    factory.generate:declarations.py:290 Sequence: Computing next value of <function UserFactory.<lambda> at 0x000001F969ECEB90> for seq=105
+DEBUG    factory.generate:declarations.py:673 PostGeneration: Calling apps.users.tests.factories.password(<User: reset@example.com>, <BuildStep for <StepBuilder(<DjangoOptions for UserFactory>, strategy='create')>>, value_provided=False, value=None, extra={})
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/password-reset/
+_ TestPasswordResetRequestView.test_password_reset_request_nonexistent_email __
+
+self = <apps.authentication.tests.test_authentication_views.TestPasswordResetRequestView object at 0x000001F969F7E0D0>
+mock_send_email = <MagicMock name='request_password_reset' id='2170781874368'>
+
+    @patch("apps.authentication.services.request_password_reset")
+    def test_password_reset_request_nonexistent_email(self, mock_send_email):
+        """Test password reset request with non-existent email."""
+        client = APIClient()
+        url = reverse("authentication:password_reset")
+    
+        payload = {"email": "nonexistent@example.com"}
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_200_OK
+E       assert 429 == 200
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   200 = status.HTTP_200_OK
+
+apps\authentication\tests\test_authentication_views.py:412: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/password-reset/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/password-reset/
+___ TestPasswordResetRequestView.test_password_reset_request_invalid_email ____
+
+self = <apps.authentication.tests.test_authentication_views.TestPasswordResetRequestView object at 0x000001F969FF0050>
+
+    def test_password_reset_request_invalid_email(self):
+        """Test password reset request with invalid email format."""
+        client = APIClient()
+        url = reverse("authentication:password_reset")
+    
+        payload = {"email": "not-an-email"}
+    
+        response = client.post(url, payload, format="json")
+    
+>       assert response.status_code == status.HTTP_400_BAD_REQUEST
+E       assert 429 == 400
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   400 = status.HTTP_400_BAD_REQUEST
+
+apps\authentication\tests\test_authentication_views.py:424: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/password-reset/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/password-reset/
+_______________ TestAuthenticationFlow.test_complete_auth_flow ________________
+
+self = <apps.authentication.tests.test_authentication_views.TestAuthenticationFlow object at 0x000001F969F7E710>
+
+    def test_complete_auth_flow(self):
+        """Test complete authentication flow: register -> login -> me -> change password."""
+        client = APIClient()
+    
+        # 1. Register
+        register_url = reverse("authentication:register")
+        register_payload = {
+            "email": "flow@example.com",
+            "role": UserRoles.CUSTOMER,
+            "password": "FlowPass123!",
+            "password_confirm": "FlowPass123!",
+        }
+        register_response = client.post(register_url, register_payload, format="json")
+>       assert register_response.status_code == status.HTTP_201_CREATED
+E       assert 429 == 201
+E        +  where 429 = <Response status_code=429, "application/json">.status_code
+E        +  and   201 = status.HTTP_201_CREATED
+
+apps\authentication\tests\test_authentication_views.py:569: AssertionError
+---------------------------- Captured stderr call -----------------------------
+WARNING:django.request:Too Many Requests: /api/v1/auth/register/
+------------------------------ Captured log call ------------------------------
+WARNING  django.request:log.py:253 Too Many Requests: /api/v1/auth/register/
+=========================== short test summary info ===========================
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_success
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_missing_fields
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_passwords_do_not_match
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_duplicate_email
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_invalid_role
+FAILED apps/authentication/tests/test_authentication_views.py::TestRegisterView::test_register_user_weak_password
+FAILED apps/authentication/tests/test_authentication_views.py::TestPasswordResetRequestView::test_password_reset_request_success
+FAILED apps/authentication/tests/test_authentication_views.py::TestPasswordResetRequestView::test_password_reset_request_nonexistent_email
+FAILED apps/authentication/tests/test_authentication_views.py::TestPasswordResetRequestView::test_password_reset_request_invalid_email
+FAILED apps/authentication/tests/test_authentication_views.py::TestAuthenticationFlow::test_complete_auth_flow
+10 failed, 277 passed in 181.80s (0:03:01)

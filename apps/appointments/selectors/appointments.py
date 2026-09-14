@@ -6,6 +6,7 @@ from django.utils import timezone
 from apps.appointments.enums import ACTIVE_APPOINTMENT_STATUSES
 from apps.appointments.models import Appointment
 
+
 def get_appointment_by_id(*, appointment_id) -> Appointment:
     return Appointment.objects.select_related(
         "organization",

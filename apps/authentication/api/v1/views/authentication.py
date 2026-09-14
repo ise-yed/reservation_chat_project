@@ -1,8 +1,8 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework.throttling import ScopedRateThrottle
 
 from apps.authentication.api.v1.docs import (
     change_password_schema,
@@ -72,7 +72,7 @@ class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
-    
+
     @login_schema
     def post(self, request):
         """Authenticate a user using email and password."""

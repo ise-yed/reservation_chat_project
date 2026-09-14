@@ -15,7 +15,7 @@ from apps.availability.services.helpers import (
     get_provider_or_raise,
 )
 
-SLOTS_CACHE_TIMEOUT = 20 
+SLOTS_CACHE_TIMEOUT = 20
 
 
 def _slots_cache_key(*, provider_id, target_date) -> str:

@@ -1,0 +1,123 @@
+﻿E501 Line too long (104 > 100)
+  --> apps\availability\services\slots.py:63:101
+   |
+62 | def _compute_available_slots(*, provider, offering, target_date):
+63 |     """Compute the actual available slots ΓÇö the same logic as before, just separated into a function."""
+   |                                                                                                     ^^^^
+64 |     holiday = get_active_holiday_for_date(
+65 |         organization=provider.organization,
+   |
+
+F403 `from .base import *` used; unable to detect undefined names
+ --> config\settings\dev.py:1:1
+  |
+1 | from .base import *
+  | ^^^^^^^^^^^^^^^^^^^
+2 |
+3 | DEBUG = True
+  |
+
+F403 `from .base import *` used; unable to detect undefined names
+ --> config\settings\prod.py:1:1
+  |
+1 | from .base import *
+  | ^^^^^^^^^^^^^^^^^^^
+2 |
+3 | DEBUG = False
+  |
+
+F405 `config` may be undefined, or defined from star imports
+  --> config\settings\prod.py:20:14
+   |
+19 | EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+20 | EMAIL_HOST = config("EMAIL_HOST")
+   |              ^^^^^^
+21 | EMAIL_PORT = config("EMAIL_PORT", cast=int)
+22 | EMAIL_USE_TLS = True
+   |
+
+F405 `config` may be undefined, or defined from star imports
+  --> config\settings\prod.py:21:14
+   |
+19 | EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+20 | EMAIL_HOST = config("EMAIL_HOST")
+21 | EMAIL_PORT = config("EMAIL_PORT", cast=int)
+   |              ^^^^^^
+22 | EMAIL_USE_TLS = True
+23 | EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+   |
+
+F405 `config` may be undefined, or defined from star imports
+  --> config\settings\prod.py:23:19
+   |
+21 | EMAIL_PORT = config("EMAIL_PORT", cast=int)
+22 | EMAIL_USE_TLS = True
+23 | EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+   |                   ^^^^^^
+24 | EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+25 | DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+   |
+
+F405 `config` may be undefined, or defined from star imports
+  --> config\settings\prod.py:24:23
+   |
+22 | EMAIL_USE_TLS = True
+23 | EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+24 | EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+   |                       ^^^^^^
+25 | DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+   |
+
+F405 `config` may be undefined, or defined from star imports
+  --> config\settings\prod.py:25:22
+   |
+23 | EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+24 | EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+25 | DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+   |                      ^^^^^^
+26 |
+27 | LOGGING = {
+   |
+
+F405 `BASE_DIR` may be undefined, or defined from star imports
+  --> config\settings\prod.py:34:25
+   |
+32 |             "level": "ERROR",
+33 |             "class": "logging.FileHandler",
+34 |             "filename": BASE_DIR / "logs/errors.log",
+   |                         ^^^^^^^^
+35 |         },
+36 |         "security": {
+   |
+
+F405 `BASE_DIR` may be undefined, or defined from star imports
+  --> config\settings\prod.py:39:25
+   |
+37 |             "level": "WARNING",
+38 |             "class": "logging.FileHandler",
+39 |             "filename": BASE_DIR / "logs/security.log",
+   |                         ^^^^^^^^
+40 |         },
+41 |     },
+   |
+
+F403 `from .base import *` used; unable to detect undefined names
+ --> config\settings\test.py:1:1
+  |
+1 | from .base import *
+  | ^^^^^^^^^^^^^^^^^^^
+2 |
+3 | EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+  |
+
+F405 `REST_FRAMEWORK` may be undefined, or defined from star imports
+  --> config\settings\test.py:27:7
+   |
+26 | REST_FRAMEWORK = {
+27 |     **REST_FRAMEWORK,
+   |       ^^^^^^^^^^^^^^
+28 |     "DEFAULT_THROTTLE_CLASSES": [],
+29 |     "DEFAULT_THROTTLE_RATES": {},
+   |
+
+Found 12 errors.

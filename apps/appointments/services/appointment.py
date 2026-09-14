@@ -149,7 +149,7 @@ def create_appointment(
             "price": str(appointment.price),
         },
     )
-    
+
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=locked_provider.id,
@@ -211,7 +211,7 @@ def cancel_appointment(
             "cancel_reason": appointment.cancel_reason,
         },
     )
-    
+
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,
@@ -257,7 +257,7 @@ def update_appointment_status(
             "new_status": appointment.status,
         },
     )
-    
+
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,
