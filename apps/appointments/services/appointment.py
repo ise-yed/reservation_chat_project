@@ -24,11 +24,7 @@ from apps.appointments.services.notification import (
     publish_appointment_created_notification,
     publish_appointment_status_notification,
 )
-from apps.audit.enums import (
-    AuditAction,
-    AuditObjectType,
-)
-from apps.audit.services import create_audit_log
+
 from apps.availability.services import get_available_slots, invalidate_provider_slots_cache
 from apps.providers.models import ProviderProfile
 
@@ -131,25 +127,7 @@ def create_appointment(
 
     publish_appointment_created_notification(appointment=appointment)
 
-    create_audit_log(
-        actor=customer,
-        organization=appointment.organization,
-        action=AuditAction.APPOINTMENT_CREATED,
-        target_object_type=AuditObjectType.APPOINTMENT,
-        target_object_id=appointment.id,
-        target_object_repr=str(appointment),
-        metadata={
-            "appointment_id": str(appointment.id),
-            "customer_id": str(appointment.customer_id),
-            "provider_id": str(appointment.provider_id),
-            "offering_id": str(appointment.offering_id),
-            "start_at": appointment.start_at.isoformat(),
-            "end_at": appointment.end_at.isoformat(),
-            "status": appointment.status,
-            "price": str(appointment.price),
-        },
-    )
-
+  
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=locked_provider.id,
@@ -196,22 +174,7 @@ def cancel_appointment(
 
     publish_appointment_cancelled_notification(appointment=appointment)
 
-    create_audit_log(
-        actor=actor,
-        organization=appointment.organization,
-        action=AuditAction.APPOINTMENT_CANCELLED,
-        target_object_type=AuditObjectType.APPOINTMENT,
-        target_object_id=appointment.id,
-        target_object_repr=str(appointment),
-        metadata={
-            "appointment_id": str(appointment.id),
-            "old_status": old_status,
-            "new_status": appointment.status,
-            "cancelled_by_id": str(actor.id),
-            "cancel_reason": appointment.cancel_reason,
-        },
-    )
-
+   
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,
@@ -244,20 +207,7 @@ def update_appointment_status(
 
     publish_appointment_status_notification(appointment=appointment)
 
-    create_audit_log(
-        actor=actor,
-        organization=appointment.organization,
-        action=AuditAction.APPOINTMENT_STATUS_CHANGED,
-        target_object_type=AuditObjectType.APPOINTMENT,
-        target_object_id=appointment.id,
-        target_object_repr=str(appointment),
-        metadata={
-            "appointment_id": str(appointment.id),
-            "old_status": old_status,
-            "new_status": appointment.status,
-        },
-    )
-
+    
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,

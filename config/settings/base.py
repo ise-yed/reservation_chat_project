@@ -42,7 +42,6 @@ LOCAL_APPS = [
     "apps.appointments",
     "apps.notifications",
     "apps.payments",
-    "apps.audit",
     "apps.categories",
 ]
 

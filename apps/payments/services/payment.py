@@ -5,8 +5,6 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.appointments.models import Appointment
-from apps.audit.enums import AuditAction, AuditObjectType
-from apps.audit.services import create_audit_log
 from apps.payments.enums import (
     PaymentMethod,
     PaymentStatus,
@@ -135,23 +133,7 @@ def initiate_appointment_payment(
         message="Payment initiated.",
     )
 
-    create_audit_log(
-        actor=actor,
-        organization=payment.organization,
-        action=AuditAction.PAYMENT_INITIATED,
-        target_object_type=AuditObjectType.PAYMENT,
-        target_object_id=payment.id,
-        target_object_repr=str(payment),
-        metadata={
-            "payment_id": str(payment.id),
-            "appointment_id": str(payment.appointment_id),
-            "amount": str(payment.amount),
-            "currency": payment.currency,
-            "method": payment.method,
-            "status": payment.status,
-        },
-    )
-
+    
     return payment
 
 
@@ -208,23 +190,7 @@ def mark_payment_as_paid(
 
     publish_payment_success_notification(payment=locked_payment)
 
-    create_audit_log(
-        actor=actor,
-        organization=locked_payment.organization,
-        action=AuditAction.PAYMENT_PAID,
-        target_object_type=AuditObjectType.PAYMENT,
-        target_object_id=locked_payment.id,
-        target_object_repr=str(locked_payment),
-        metadata={
-            "payment_id": str(locked_payment.id),
-            "appointment_id": str(locked_payment.appointment_id),
-            "amount": str(locked_payment.amount),
-            "currency": locked_payment.currency,
-            "gateway_reference": locked_payment.gateway_reference,
-            "status": locked_payment.status,
-        },
-    )
-
+   
     return locked_payment
 
 
@@ -283,24 +249,7 @@ def mark_payment_as_failed(
 
     publish_payment_failed_notification(payment=locked_payment)
 
-    create_audit_log(
-        actor=actor,
-        organization=locked_payment.organization,
-        action=AuditAction.PAYMENT_FAILED,
-        target_object_type=AuditObjectType.PAYMENT,
-        target_object_id=locked_payment.id,
-        target_object_repr=str(locked_payment),
-        metadata={
-            "payment_id": str(locked_payment.id),
-            "appointment_id": str(locked_payment.appointment_id),
-            "amount": str(locked_payment.amount),
-            "currency": locked_payment.currency,
-            "gateway_reference": locked_payment.gateway_reference,
-            "failure_reason": locked_payment.failure_reason,
-            "status": locked_payment.status,
-        },
-    )
-
+    
     return locked_payment
 
 
@@ -341,22 +290,7 @@ def cancel_payment(
         message="Payment cancelled.",
     )
 
-    create_audit_log(
-        actor=actor,
-        organization=locked_payment.organization,
-        action=AuditAction.PAYMENT_CANCELLED,
-        target_object_type=AuditObjectType.PAYMENT,
-        target_object_id=locked_payment.id,
-        target_object_repr=str(locked_payment),
-        metadata={
-            "payment_id": str(locked_payment.id),
-            "appointment_id": str(locked_payment.appointment_id),
-            "amount": str(locked_payment.amount),
-            "currency": locked_payment.currency,
-            "status": locked_payment.status,
-        },
-    )
-
+    
     return locked_payment
 
 
@@ -408,21 +342,5 @@ def refund_payment(
 
     publish_refund_success_notification(payment=locked_payment)
 
-    create_audit_log(
-        actor=actor,
-        organization=locked_payment.organization,
-        action=AuditAction.PAYMENT_REFUNDED,
-        target_object_type=AuditObjectType.PAYMENT,
-        target_object_id=locked_payment.id,
-        target_object_repr=str(locked_payment),
-        metadata={
-            "payment_id": str(locked_payment.id),
-            "appointment_id": str(locked_payment.appointment_id),
-            "amount": str(locked_payment.amount),
-            "currency": locked_payment.currency,
-            "refund_reason": locked_payment.refund_reason,
-            "status": locked_payment.status,
-        },
-    )
-
+    
     return locked_payment
