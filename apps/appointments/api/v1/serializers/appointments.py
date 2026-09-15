@@ -1,7 +1,12 @@
+"""
+Serializers for appointment operations.
+"""
+
 from rest_framework import serializers
 
 from apps.appointments.enums import AppointmentStatus
 from apps.appointments.models import Appointment
+from apps.categories.models import Category
 from apps.offerings.models import Offering
 from apps.organizations.models import Branch, Organization
 from apps.providers.models import ProviderProfile
@@ -9,6 +14,8 @@ from apps.users.api.v1.serializers import UserReadSerializer
 
 
 class AppointmentCreateSerializer(serializers.Serializer):
+    """Serializer for creating an appointment."""
+
     provider_id = serializers.UUIDField()
     offering_id = serializers.UUIDField()
     start_at = serializers.DateTimeField()
@@ -20,6 +27,8 @@ class AppointmentCreateSerializer(serializers.Serializer):
 
 
 class AppointmentOrganizationInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for organization summary."""
+
     class Meta:
         model = Organization
         fields = (
@@ -31,6 +40,8 @@ class AppointmentOrganizationInlineSerializer(serializers.ModelSerializer):
 
 
 class AppointmentBranchInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for branch summary."""
+
     class Meta:
         model = Branch
         fields = (
@@ -42,8 +53,24 @@ class AppointmentBranchInlineSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class AppointmentSpecialtyInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for specialty summary."""
+
+    class Meta:
+        model = Category
+        fields = (
+            "id",
+            "name",
+            "slug",
+        )
+        read_only_fields = fields
+
+
 class AppointmentProviderInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for provider summary."""
+
     user = UserReadSerializer(read_only=True)
+    specialties = AppointmentSpecialtyInlineSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProviderProfile
@@ -51,13 +78,15 @@ class AppointmentProviderInlineSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "title",
-            "specialty",
+            "specialties",
             "is_active",
         )
         read_only_fields = fields
 
 
 class AppointmentOfferingInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for offering summary."""
+
     class Meta:
         model = Offering
         fields = (
@@ -74,6 +103,8 @@ class AppointmentOfferingInlineSerializer(serializers.ModelSerializer):
 
 
 class AppointmentCancelSerializer(serializers.Serializer):
+    """Serializer for cancelling an appointment."""
+
     cancel_reason = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -82,6 +113,8 @@ class AppointmentCancelSerializer(serializers.Serializer):
 
 
 class AppointmentStatusUpdateSerializer(serializers.Serializer):
+    """Serializer for updating appointment status."""
+
     status = serializers.ChoiceField(
         choices=[
             AppointmentStatus.CONFIRMED,
@@ -92,6 +125,8 @@ class AppointmentStatusUpdateSerializer(serializers.Serializer):
 
 
 class AppointmentReadSerializer(serializers.ModelSerializer):
+    """Serializer for reading complete appointment details."""
+
     organization = AppointmentOrganizationInlineSerializer(read_only=True)
     branch = AppointmentBranchInlineSerializer(read_only=True)
     customer = UserReadSerializer(read_only=True)

@@ -7,5 +7,5 @@ from .views.categories import (
 app_name = "categories"
 
 urlpatterns = [
-    path("api/v1/categories/", CategoryListView.as_view(), name="category-list"),
+    path("", CategoryListView.as_view(), name="category-list"),
 ]

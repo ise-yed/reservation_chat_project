@@ -1,9 +1,10 @@
 """
-Inline serializers for organization and branch summaries.
+Inline serializers for organization, branch, and specialty summaries.
 """
 
 from rest_framework import serializers
 
+from apps.categories.models import Category
 from apps.organizations.models import Branch, Organization
 from apps.providers.models import ProviderProfile
 from apps.users.api.v1.serializers import UserReadSerializer
@@ -36,6 +37,19 @@ class ProviderBranchInlineSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ProviderSpecialtyInlineSerializer(serializers.ModelSerializer):
+    """Inline serializer for specialty summary in provider profile."""
+
+    class Meta:
+        model = Category
+        fields = (
+            "id",
+            "name",
+            "slug",
+        )
+        read_only_fields = fields
+
+
 class ProviderProfileCreateSerializer(serializers.Serializer):
     """
     Serializer for creating a new provider profile.
@@ -53,12 +67,13 @@ class ProviderProfileCreateSerializer(serializers.Serializer):
         allow_blank=True,
         default="",
     )
-    specialty = serializers.CharField(
-        max_length=150,
+
+    specialty_ids = serializers.ListField(
+        child=serializers.UUIDField(),
         required=False,
-        allow_blank=True,
-        default="",
+        default=list,
     )
+
     bio = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -78,21 +93,16 @@ class ProviderProfileCreateSerializer(serializers.Serializer):
             value = value.strip()
         return value
 
-    def validate_specialty(self, value):
-        """Strip whitespace from specialty if provided."""
-        if value:
-            value = value.strip()
-        return value
-
 
 class ProviderProfileReadSerializer(serializers.ModelSerializer):
     """
-    Serializer for reading provider profile with nested user and organization data.
+    Serializer for reading provider profile with nested user, organization, and specialties data.
     """
 
     user = UserReadSerializer(read_only=True)
     organization = ProviderOrganizationInlineSerializer(read_only=True)
     branch = ProviderBranchInlineSerializer(read_only=True)
+    specialties = ProviderSpecialtyInlineSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProviderProfile
@@ -102,7 +112,7 @@ class ProviderProfileReadSerializer(serializers.ModelSerializer):
             "organization",
             "branch",
             "title",
-            "specialty",
+            "specialties",
             "bio",
             "default_slot_duration_minutes",
             "is_active",
@@ -126,11 +136,12 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
-    specialty = serializers.CharField(
-        max_length=150,
+
+    specialty_ids = serializers.ListField(
+        child=serializers.UUIDField(),
         required=False,
-        allow_blank=True,
     )
+
     bio = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -144,12 +155,6 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
 
     def validate_title(self, value):
         """Strip whitespace from title if provided."""
-        if value:
-            value = value.strip()
-        return value
-
-    def validate_specialty(self, value):
-        """Strip whitespace from specialty if provided."""
         if value:
             value = value.strip()
         return value

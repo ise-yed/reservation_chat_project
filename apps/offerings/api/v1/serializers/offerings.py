@@ -24,6 +24,7 @@ class OfferingProviderInlineSerializer(serializers.ModelSerializer):
     """Inline serializer for provider in offering."""
 
     user = UserReadSerializer(read_only=True)
+    specialties = CategorySerializer(many=True, read_only=True)
 
     class Meta:
         model = ProviderProfile
@@ -31,7 +32,7 @@ class OfferingProviderInlineSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "title",
-            "specialty",
+            "specialties",
             "default_slot_duration_minutes",
             "is_active",
         )
@@ -81,6 +82,7 @@ class OfferingCreateSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(required=False, default=True)
 
     def validate_title(self, value):
+        """Ensure title is not empty or just whitespace."""
         value = value.strip()
         if not value:
             raise serializers.ValidationError("Offering title is required.")
@@ -153,6 +155,7 @@ class OfferingUpdateSerializer(serializers.Serializer):
     is_active = serializers.BooleanField(required=False)
 
     def validate_title(self, value):
+        """Ensure updated title is not empty or just whitespace."""
         value = value.strip()
         if not value:
             raise serializers.ValidationError("Offering title cannot be empty.")

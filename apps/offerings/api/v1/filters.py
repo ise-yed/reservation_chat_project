@@ -10,8 +10,8 @@ class OfferingFilter(filters.FilterSet):
 
     category_name = filters.CharFilter(field_name="category__name", lookup_expr="icontains")
 
-    organization_id = filters.NumberFilter(field_name="organization__id")
-    provider_id = filters.NumberFilter(field_name="provider__id")
+    organization_id = filters.UUIDFilter(field_name="organization__id")
+    provider_id = filters.UUIDFilter(field_name="provider__id")
     min_price = filters.NumberFilter(field_name="price", lookup_expr="gte")
     max_price = filters.NumberFilter(field_name="price", lookup_expr="lte")
 

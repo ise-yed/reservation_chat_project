@@ -133,7 +133,7 @@ def initiate_appointment_payment(
         message="Payment initiated.",
     )
 
-    
+
     return payment
 
 
@@ -190,7 +190,7 @@ def mark_payment_as_paid(
 
     publish_payment_success_notification(payment=locked_payment)
 
-   
+
     return locked_payment
 
 
@@ -249,7 +249,7 @@ def mark_payment_as_failed(
 
     publish_payment_failed_notification(payment=locked_payment)
 
-    
+
     return locked_payment
 
 
@@ -290,7 +290,7 @@ def cancel_payment(
         message="Payment cancelled.",
     )
 
-    
+
     return locked_payment
 
 
@@ -342,5 +342,5 @@ def refund_payment(
 
     publish_refund_success_notification(payment=locked_payment)
 
-    
+
     return locked_payment

@@ -24,7 +24,6 @@ from apps.appointments.services.notification import (
     publish_appointment_created_notification,
     publish_appointment_status_notification,
 )
-
 from apps.availability.services import get_available_slots, invalidate_provider_slots_cache
 from apps.providers.models import ProviderProfile
 
@@ -127,7 +126,7 @@ def create_appointment(
 
     publish_appointment_created_notification(appointment=appointment)
 
-  
+
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=locked_provider.id,
@@ -136,6 +135,7 @@ def create_appointment(
     )
 
     return appointment
+
 
 
 @transaction.atomic
@@ -148,6 +148,9 @@ def cancel_appointment(
     """Cancel an appointment."""
     if not can_cancel_appointment(actor, appointment):
         raise PermissionDenied("You are not allowed to cancel this appointment.")
+
+    if timezone.now() >= appointment.start_at:
+        raise ValidationError("Cannot cancel an appointment that has already started.")
 
     validate_appointment_is_cancellable(appointment=appointment)
 
@@ -174,7 +177,6 @@ def cancel_appointment(
 
     publish_appointment_cancelled_notification(appointment=appointment)
 
-   
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,
@@ -207,7 +209,7 @@ def update_appointment_status(
 
     publish_appointment_status_notification(appointment=appointment)
 
-    
+
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=appointment.provider_id,

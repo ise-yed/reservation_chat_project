@@ -23,4 +23,5 @@ LOGGING = {
 }
 
 from rest_framework.throttling import SimpleRateThrottle
+
 SimpleRateThrottle.allow_request = lambda self, request, view: True

@@ -17,3 +17,4 @@ django-timezone-field==7.2.2
 factory-boy==3.3.3
 pytest-django
 django-redis==7.0.0
+pyclean==3.7.0

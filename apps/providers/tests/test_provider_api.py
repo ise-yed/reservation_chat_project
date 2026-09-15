@@ -21,8 +21,8 @@ def get_client(user=None):
 class TestProviderProfileListCreateAPI:
     def test_authenticated_user_can_list_active_providers(self):
         user = UserFactory()
-        ProviderProfileFactory(is_active=True, specialty="Active Provider")
-        ProviderProfileFactory(is_active=False, specialty="Inactive Provider")
+        ProviderProfileFactory(is_active=True)
+        ProviderProfileFactory(is_active=False)
 
         client = get_client(user)
         url = reverse("providers:list-create")
@@ -31,7 +31,7 @@ class TestProviderProfileListCreateAPI:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] == 1
-        assert response.data["results"][0]["specialty"] == "Active Provider"
+        assert isinstance(response.data["results"][0]["specialties"], list)
 
     def test_unauthenticated_user_cannot_list_providers(self):
         client = get_client()
@@ -55,7 +55,7 @@ class TestProviderProfileListCreateAPI:
             "organization_id": str(organization.id),
             "branch_id": str(branch.id),
             "title": "Dr.",
-            "specialty": "General",
+            "specialty_ids": [],
             "bio": "Provider bio",
             "default_slot_duration_minutes": 30,
             "is_active": True,
@@ -92,8 +92,8 @@ class TestMyProviderProfilesAPI:
         provider_user = UserFactory(role=UserRoles.PROVIDER)
         other_provider = UserFactory(role=UserRoles.PROVIDER)
 
-        ProviderProfileFactory(user=provider_user, specialty="Mine")
-        ProviderProfileFactory(user=other_provider, specialty="Other")
+        ProviderProfileFactory(user=provider_user)
+        ProviderProfileFactory(user=other_provider)
 
         client = get_client(provider_user)
         url = reverse("providers:my-list")
@@ -102,7 +102,7 @@ class TestMyProviderProfilesAPI:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] == 1
-        assert response.data["results"][0]["specialty"] == "Mine"
+        assert isinstance(response.data["results"][0]["specialties"], list)
 
 
 class TestOrganizationProvidersAPI:
@@ -112,12 +112,10 @@ class TestOrganizationProvidersAPI:
 
         ProviderProfileFactory(
             organization=organization,
-            specialty="Active",
             is_active=True,
         )
         ProviderProfileFactory(
             organization=organization,
-            specialty="Inactive",
             is_active=False,
         )
 
@@ -131,7 +129,6 @@ class TestOrganizationProvidersAPI:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["count"] == 1
-        assert response.data["results"][0]["specialty"] == "Active"
 
     def test_organization_owner_can_see_inactive_organization_providers(self):
         owner = UserFactory(role=UserRoles.PROVIDER)
@@ -139,12 +136,10 @@ class TestOrganizationProvidersAPI:
 
         ProviderProfileFactory(
             organization=organization,
-            specialty="Active",
             is_active=True,
         )
         ProviderProfileFactory(
             organization=organization,
-            specialty="Inactive",
             is_active=False,
         )
 
@@ -178,7 +173,6 @@ class TestProviderProfileDetailAPI:
         provider_profile = ProviderProfileFactory(
             user=provider_user,
             title="Old",
-            specialty="Old Specialty",
         )
 
         client = get_client(provider_user)
@@ -188,14 +182,14 @@ class TestProviderProfileDetailAPI:
             url,
             {
                 "title": "New",
-                "specialty": "New Specialty",
+                "specialty_ids": [],
             },
             format="json",
         )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["title"] == "New"
-        assert response.data["specialty"] == "New Specialty"
+        assert response.data["specialties"] == []
 
     def test_provider_cannot_update_own_is_active_field(self):
         provider_user = UserFactory(role=UserRoles.PROVIDER)

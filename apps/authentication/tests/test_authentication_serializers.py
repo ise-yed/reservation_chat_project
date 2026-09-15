@@ -89,18 +89,6 @@ class TestRegisterSerializer:
         # پیام خطا از ModelSerializer می‌آید
         assert "valid choice" in str(serializer.errors["role"]).lower()
 
-    def test_register_serializer_provider_role_allowed(self):
-        """Test serializer allows PROVIDER role."""
-        data = {
-            "email": "provider@example.com",
-            "role": UserRoles.PROVIDER,
-            "password": "StrongPass123!",
-            "password_confirm": "StrongPass123!",
-        }
-
-        serializer = RegisterSerializer(data=data)
-        assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["role"] == UserRoles.PROVIDER
 
     def test_register_serializer_email_normalization(self):
         """Test serializer normalizes email to lowercase."""

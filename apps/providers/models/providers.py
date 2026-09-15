@@ -24,7 +24,12 @@ class ProviderProfile(BaseModel):
     )
 
     title = models.CharField(max_length=150, blank=True)
-    specialty = models.CharField(max_length=150, blank=True)
+
+    specialties = models.ManyToManyField(
+        "categories.Category",
+        related_name="providers",
+        blank=True,
+    )
     bio = models.TextField(blank=True)
 
     default_slot_duration_minutes = models.PositiveSmallIntegerField(default=30)
@@ -43,11 +48,7 @@ class ProviderProfile(BaseModel):
             models.Index(fields=["organization", "is_active"]),
             models.Index(fields=["user", "is_active"]),
             models.Index(fields=["branch", "is_active"]),
-            models.Index(fields=["specialty"]),
         ]
 
     def __str__(self):
-        full_name = self.user.full_name or self.user.email
-        if self.specialty:
-            return f"{full_name} - {self.specialty}"
-        return full_name
+        return self.user.full_name or self.user.email

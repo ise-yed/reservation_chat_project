@@ -28,7 +28,7 @@ def create_provider_profile(
     organization_id,
     branch_id=None,
     title: str = "",
-    specialty: str = "",
+    specialty_ids: list | None = None,
     bio: str = "",
     default_slot_duration_minutes: int = 30,
     is_active: bool = True,
@@ -71,16 +71,21 @@ def create_provider_profile(
         )
 
     try:
-        return ProviderProfile.objects.create(
+        profile = ProviderProfile.objects.create(
             user=user,
             organization=organization,
             branch=branch,
             title=title.strip(),
-            specialty=specialty.strip(),
             bio=bio,
             default_slot_duration_minutes=default_slot_duration_minutes,
             is_active=is_active,
         )
+
+        if specialty_ids:
+            profile.specialties.set(specialty_ids)
+
+        return profile
+
     except IntegrityError as exc:
         raise ValidationError(
             {"user_id": ["This user already has provider profile in this organization."]}
@@ -127,9 +132,14 @@ def update_provider_profile(
 
             provider_profile.branch = branch
 
+    specialty_marker = object()
+    specialty_ids = data.pop("specialty_ids", specialty_marker)
+
+    if specialty_ids is not specialty_marker:
+        provider_profile.specialties.set(specialty_ids)
+
     allowed_fields = {
         "title",
-        "specialty",
         "bio",
         "default_slot_duration_minutes",
         "is_active",

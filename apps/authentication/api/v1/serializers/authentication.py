@@ -33,13 +33,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
     def validate_role(self, value):
-        """Ensure role is either customer or provider."""
-        allowed_roles = {
-            UserRoles.CUSTOMER,
-            UserRoles.PROVIDER,
-        }
-        if value not in allowed_roles:
-            raise serializers.ValidationError("Invalid role selected.")
+        """Ensure role is always customer for public registration."""
+        if value != UserRoles.CUSTOMER:
+            raise serializers.ValidationError("Public registration is only allowed for patients (customers).")
         return value
 
     def validate_email(self, value):
