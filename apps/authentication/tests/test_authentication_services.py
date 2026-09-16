@@ -265,3 +265,4 @@ class TestResetPassword:
         assert success is False
         user.refresh_from_db()
         assert user.check_password(old_password)
+    

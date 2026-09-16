@@ -34,6 +34,7 @@ class AppointmentAdmin(admin.ModelAdmin):
         "customer",
         "provider",
         "offering",
+        "visit_mode",
         "start_at",
         "end_at",
         "status",
@@ -41,6 +42,7 @@ class AppointmentAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = (
+        "visit_mode",
         "status",
         "organization",
         "provider",

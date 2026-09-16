@@ -25,6 +25,10 @@ class AppointmentFactory(factory.django.DjangoModelFactory):
     def branch(self):
         return self.provider.branch
 
+    @factory.lazy_attribute
+    def visit_mode(self):
+        return self.offering.visit_mode
+
     start_at = factory.LazyFunction(lambda: None)
     end_at = factory.LazyFunction(lambda: None)
     blocked_start_at = factory.LazyFunction(lambda: None)

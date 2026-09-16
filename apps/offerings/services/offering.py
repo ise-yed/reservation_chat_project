@@ -1,6 +1,8 @@
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 
+from apps.categories.models import Category
+from apps.offerings.enums import VisitMode
 from apps.offerings.models import Offering
 from apps.offerings.services.helpers import (
     ensure_can_manage_organization,
@@ -19,6 +21,8 @@ def create_offering(
     provider_id,
     title: str,
     description: str = "",
+    visit_mode: str = VisitMode.IN_PERSON,
+    specialty_id=None,
     duration_minutes: int = 30,
     buffer_before_minutes: int = 0,
     buffer_after_minutes: int = 0,
@@ -61,12 +65,21 @@ def create_offering(
     if duplicate_exists:
         raise ValidationError({"title": ["This provider already has an offering with this title."]})
 
+    specialty = None
+    if specialty_id:
+        try:
+            specialty = Category.objects.get(id=specialty_id, is_active=True)
+        except Category.DoesNotExist:
+            raise ValidationError({"specialty_id": ["Invalid specialty."]})
+
     try:
         return Offering.objects.create(
             organization=organization,
             provider=provider,
+            specialty=specialty,
             title=clean_title,
             description=description,
+            visit_mode=visit_mode,
             duration_minutes=duration_minutes,
             buffer_before_minutes=buffer_before_minutes,
             buffer_after_minutes=buffer_after_minutes,
@@ -116,6 +129,7 @@ def update_offering(
     allowed_fields = {
         "title",
         "description",
+        "visit_mode",
         "duration_minutes",
         "buffer_before_minutes",
         "buffer_after_minutes",
@@ -125,6 +139,17 @@ def update_offering(
     }
 
     update_fields = []
+
+    if "specialty_id" in data:
+        specialty_id = data.pop("specialty_id")
+        if specialty_id is None:
+            offering.specialty = None
+        else:
+            try:
+                offering.specialty = Category.objects.get(id=specialty_id, is_active=True)
+            except Category.DoesNotExist:
+                raise ValidationError({"specialty_id": ["Invalid specialty."]})
+        update_fields.append("specialty")
 
     for field in allowed_fields:
         if field in data:

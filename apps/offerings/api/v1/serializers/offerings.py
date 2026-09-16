@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.categories.api.v1.serializers import CategorySerializer
+from apps.offerings.enums import VisitMode
 from apps.offerings.models import Offering
 from apps.organizations.models import Organization
 from apps.providers.models import ProviderProfile
@@ -44,12 +45,19 @@ class OfferingCreateSerializer(serializers.Serializer):
 
     organization_id = serializers.UUIDField()
     provider_id = serializers.UUIDField()
+    specialty_id = serializers.UUIDField(required=False, allow_null=True)  #
 
     title = serializers.CharField(max_length=255)
     description = serializers.CharField(
         required=False,
         allow_blank=True,
         default="",
+    )
+
+    visit_mode = serializers.ChoiceField(
+        choices=VisitMode.choices,
+        required=False,
+        default=VisitMode.IN_PERSON,
     )
 
     duration_minutes = serializers.IntegerField(
@@ -94,7 +102,7 @@ class OfferingReadSerializer(serializers.ModelSerializer):
 
     organization = OfferingOrganizationInlineSerializer(read_only=True)
     provider = OfferingProviderInlineSerializer(read_only=True)
-    category = CategorySerializer(read_only=True, allow_null=True, default=None)
+    specialty = CategorySerializer(read_only=True, allow_null=True, default=None)  #
 
     class Meta:
         model = Offering
@@ -102,9 +110,10 @@ class OfferingReadSerializer(serializers.ModelSerializer):
             "id",
             "organization",
             "provider",
-            "category",
+            "specialty",
             "title",
             "description",
+            "visit_mode",
             "duration_minutes",
             "buffer_before_minutes",
             "buffer_after_minutes",
@@ -128,6 +137,12 @@ class OfferingUpdateSerializer(serializers.Serializer):
         required=False,
         allow_blank=True,
     )
+
+    visit_mode = serializers.ChoiceField(
+        choices=VisitMode.choices,
+        required=False,
+    )
+    specialty_id = serializers.UUIDField(required=False, allow_null=True)
 
     duration_minutes = serializers.IntegerField(
         required=False,

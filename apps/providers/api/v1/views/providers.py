@@ -1,4 +1,5 @@
 from django.http import Http404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from apps.providers.api.v1.docs import (
     provider_detail_schema,
     provider_list_create_schema,
 )
+from apps.providers.api.v1.filters import ProviderProfileFilter
 from apps.providers.api.v1.serializers import (
     ProviderProfileCreateSerializer,
     ProviderProfileReadSerializer,
@@ -38,7 +40,8 @@ class ProviderProfileListCreateView(generics.ListCreateAPIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ProviderProfileFilter
     search_fields = [
         "user__email",
         "user__first_name",
@@ -46,9 +49,9 @@ class ProviderProfileListCreateView(generics.ListCreateAPIView):
         "organization__name",
         "branch__name",
         "title",
-        "specialty",
+        "specialties__name",
     ]
-    ordering_fields = ["created_at", "specialty"]
+    ordering_fields = ["created_at"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -158,9 +161,9 @@ class MyProviderProfileListView(generics.ListAPIView):
         "organization__name",
         "branch__name",
         "title",
-        "specialty",
+        "specialties__name",
     ]
-    ordering_fields = ["created_at", "specialty"]
+    ordering_fields = ["created_at"]
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -185,9 +188,9 @@ class OrganizationProviderListView(generics.ListAPIView):
         "user__last_name",
         "branch__name",
         "title",
-        "specialty",
+        "specialties__name",
     ]
-    ordering_fields = ["created_at", "specialty"]
+    ordering_fields = ["created_at"]
     ordering = ["-created_at"]
 
     def get_organization(self) -> Organization:

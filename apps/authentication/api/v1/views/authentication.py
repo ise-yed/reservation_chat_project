@@ -51,7 +51,7 @@ class RegisterView(APIView):
             first_name=serializer.validated_data.get("first_name", ""),
             last_name=serializer.validated_data.get("last_name", ""),
             phone_number=serializer.validated_data.get("phone_number", ""),
-            role=serializer.validated_data.get("role", UserRoles.CUSTOMER),
+            role=UserRoles.CUSTOMER,
         )
 
         tokens = build_auth_tokens_for_user(user)

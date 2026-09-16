@@ -4,7 +4,8 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django_filters.rest_framework import DjangoFilterBackend
+from apps.appointments.api.v1.filters import AppointmentFilter
 from apps.appointments.api.v1.docs import (
     appointment_cancel_schema,
     appointment_detail_schema,
@@ -86,7 +87,8 @@ class AppointmentDetailView(generics.RetrieveAPIView):
 @appointment_list_create_schema
 class AppointmentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend ,SearchFilter, OrderingFilter]
+    filterset_class = AppointmentFilter
     search_fields = [
         "customer__email",
         "customer__first_name",
@@ -162,7 +164,8 @@ class AppointmentStatusUpdateView(APIView):
 class MyAppointmentListView(generics.ListAPIView):
     serializer_class = AppointmentReadSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend,SearchFilter, OrderingFilter]
+    filterset_class = AppointmentFilter
     search_fields = [
         "provider__user__email",
         "provider__user__first_name",
@@ -181,7 +184,8 @@ class MyAppointmentListView(generics.ListAPIView):
 class ProviderAppointmentListView(generics.ListAPIView):
     serializer_class = AppointmentReadSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend,SearchFilter, OrderingFilter]
+    filterset_class = AppointmentFilter
     search_fields = [
         "customer__email",
         "customer__first_name",
@@ -218,7 +222,8 @@ class ProviderAppointmentListView(generics.ListAPIView):
 class OrganizationAppointmentListView(generics.ListAPIView):
     serializer_class = AppointmentReadSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend,SearchFilter, OrderingFilter]
+    filterset_class = AppointmentFilter
     search_fields = [
         "customer__email",
         "customer__first_name",

@@ -92,6 +92,7 @@ class AppointmentOfferingInlineSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "title",
+            "visit_mode",
             "duration_minutes",
             "buffer_before_minutes",
             "buffer_after_minutes",
@@ -144,6 +145,7 @@ class AppointmentReadSerializer(serializers.ModelSerializer):
             "customer",
             "provider",
             "offering",
+            "visit_mode",
             "start_at",
             "end_at",
             "blocked_start_at",

@@ -32,7 +32,7 @@ def test_organization_owner_can_create_provider_profile():
     assert provider_profile.user == provider_user
     assert provider_profile.organization == organization
     assert provider_profile.branch == branch
-    # اصلاح شد: به جای تست رشته متنی، تعداد تخصص‌ها را بررسی می‌کنیم
+    #  : به جای تست رشته متنی، تعداد تخصص‌ها را بررسی می‌کنیم
     assert provider_profile.specialties.count() == 0
 
 
@@ -95,11 +95,11 @@ def test_provider_can_update_own_public_profile_fields():
         provider_profile=provider_profile,
         actor=provider_user,
         title="New Title",
-        specialty_ids=[],  # اصلاح شد
+        specialty_ids=[],  #
     )
 
     assert updated.title == "New Title"
-    assert updated.specialties.count() == 0  # اصلاح شد
+    assert updated.specialties.count() == 0  #
 
 
 def test_provider_cannot_update_own_is_active_field():

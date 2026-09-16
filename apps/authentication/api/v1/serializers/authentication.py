@@ -27,16 +27,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "phone_number",
-            "role",
             "password",
             "password_confirm",
         )
 
-    def validate_role(self, value):
-        """Ensure role is always customer for public registration."""
-        if value != UserRoles.CUSTOMER:
-            raise serializers.ValidationError("Public registration is only allowed for patients (customers).")
-        return value
+
 
     def validate_email(self, value):
         """Normalize email and ensure it's unique."""
@@ -57,6 +52,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         password_validation.validate_password(attrs["password"], temp_user)
         return attrs
+
+
 
 
 class LoginSerializer(serializers.Serializer):

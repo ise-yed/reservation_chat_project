@@ -1,6 +1,7 @@
 from django.db import models
 
 from apps.common.models import BaseModel
+from apps.offerings.enums import VisitMode
 
 
 class Offering(BaseModel):
@@ -14,7 +15,7 @@ class Offering(BaseModel):
         on_delete=models.PROTECT,
         related_name="offerings",
     )
-    category = models.ForeignKey(
+    specialty = models.ForeignKey(
         "categories.Category",
         on_delete=models.SET_NULL,
         null=True,
@@ -23,6 +24,13 @@ class Offering(BaseModel):
     )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+
+    visit_mode = models.CharField(
+        max_length=32,
+        choices=VisitMode.choices,
+        default=VisitMode.IN_PERSON,
+        db_index=True,
+    )
 
     duration_minutes = models.PositiveSmallIntegerField(default=30)
     buffer_before_minutes = models.PositiveSmallIntegerField(default=0)
@@ -46,7 +54,8 @@ class Offering(BaseModel):
             models.Index(fields=["provider", "is_active"]),
             models.Index(fields=["title"]),
             models.Index(fields=["price"]),
-            models.Index(fields=["category"]),
+            models.Index(fields=["specialty"]),
+            models.Index(fields=["visit_mode"]),
         ]
 
     def __str__(self):

@@ -16,7 +16,7 @@ def get_active_offerings() -> QuerySet[Offering]:
             "provider",
             "provider__user",
             "provider__branch",
-            "category",
+            "specialty",
         )
         .order_by("-created_at")
     )
@@ -29,7 +29,7 @@ def get_offering_by_id(*, offering_id) -> Offering:
         "provider",
         "provider__user",
         "provider__branch",
-        "category",
+        "specialty",
     ).get(id=offering_id)
 
 
@@ -46,7 +46,7 @@ def get_organization_offerings(
             "provider",
             "provider__user",
             "provider__branch",
-            "category",
+            "specialty",
         )
         .order_by("-created_at")
     )
@@ -73,7 +73,7 @@ def get_provider_offerings(
             "provider",
             "provider__user",
             "provider__branch",
-            "category",
+            "specialty",
         )
         .order_by("-created_at")
     )
@@ -93,7 +93,7 @@ def get_user_offerings(*, user) -> QuerySet[Offering]:
             "provider",
             "provider__user",
             "provider__branch",
-            "category",
+            "specialty",
         )
         .order_by("-created_at")
     )

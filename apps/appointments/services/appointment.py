@@ -114,6 +114,7 @@ def create_appointment(
         customer=customer,
         provider=locked_provider,
         offering=offering,
+        visit_mode=offering.visit_mode,
         start_at=start_at,
         end_at=end_at,
         blocked_start_at=blocked_start_at,
@@ -126,7 +127,6 @@ def create_appointment(
 
     publish_appointment_created_notification(appointment=appointment)
 
-
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(
             provider_id=locked_provider.id,
@@ -135,8 +135,6 @@ def create_appointment(
     )
 
     return appointment
-
-
 
 @transaction.atomic
 def cancel_appointment(

@@ -23,7 +23,6 @@ class TestRegisterSerializer:
             "first_name": "John",
             "last_name": "Doe",
             "phone_number": "09123456789",
-            "role": UserRoles.CUSTOMER,
             "password": "StrongPass123!",
             "password_confirm": "StrongPass123!",
         }
@@ -32,7 +31,8 @@ class TestRegisterSerializer:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["email"] == "newuser@example.com"
         assert serializer.validated_data["first_name"] == "John"
-        assert serializer.validated_data["role"] == UserRoles.CUSTOMER
+        # نقش باید نادیده گرفته شود و در View ست شود
+        assert "role" not in serializer.validated_data
 
     def test_register_serializer_passwords_do_not_match(self):
         """Test serializer rejects when passwords don't match."""
@@ -74,21 +74,19 @@ class TestRegisterSerializer:
         assert "email" in serializer.errors
         assert "already exists" in str(serializer.errors["email"])
 
-    def test_register_serializer_invalid_role(self):
-        """Test serializer rejects invalid role."""
+    def test_register_serializer_ignores_role_field(self):
+        """Test serializer ignores role field completely to prevent privilege escalation."""
         data = {
             "email": "newuser@example.com",
-            "role": "invalid_role",
+            "role": "provider",  # Should be dropped
             "password": "StrongPass123!",
             "password_confirm": "StrongPass123!",
         }
 
         serializer = RegisterSerializer(data=data)
-        assert not serializer.is_valid()
-        assert "role" in serializer.errors
-        # پیام خطا از ModelSerializer می‌آید
-        assert "valid choice" in str(serializer.errors["role"]).lower()
-
+        assert serializer.is_valid()
+        # نقش باید به صورت خودکار Drop شود
+        assert "role" not in serializer.validated_data
 
     def test_register_serializer_email_normalization(self):
         """Test serializer normalizes email to lowercase."""
@@ -117,6 +115,22 @@ class TestRegisterSerializer:
 
 class TestLoginSerializer:
     """Tests for LoginSerializer."""
+
+    def test_login_serializer_authenticates_user(self):
+        """Test that login serializer properly authenticates user (Integration)."""
+        user = UserFactory(email="auth@example.com")
+        raw_password = "AuthPass123!"
+        user.set_password(raw_password)
+        user.save()
+
+        data = {
+            "email": "auth@example.com",
+            "password": raw_password,
+        }
+
+        serializer = LoginSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["user"] == user
 
     def test_login_serializer_valid_credentials(self):
         """Test serializer accepts valid login credentials."""
@@ -178,7 +192,6 @@ class TestLoginSerializer:
         assert "non_field_errors" in serializer.errors
 
         error_message = str(serializer.errors["non_field_errors"][0])
-        # بسته به تنظیمات authenticate، می‌تواند یکی از این دو باشد
         assert error_message in ["This account is inactive.", "Invalid email or password."]
 
     def test_login_serializer_email_normalization(self):
@@ -221,7 +234,6 @@ class TestChangePasswordSerializer:
             "new_password_confirm": "NewStrongPass456!",
         }
 
-        # Create mock request with user
         mock_request = type("Request", (), {"user": user})()
 
         serializer = ChangePasswordSerializer(data=data, context={"request": mock_request})
@@ -281,7 +293,6 @@ class TestChangePasswordSerializer:
 
         serializer = ChangePasswordSerializer(data=data, context={"request": mock_request})
         assert not serializer.is_valid()
-        # Should have password validation error
         assert "new_password" in serializer.errors or "non_field_errors" in serializer.errors
 
     def test_change_password_same_as_old_password(self):
@@ -299,8 +310,6 @@ class TestChangePasswordSerializer:
         mock_request = type("Request", (), {"user": user})()
 
         serializer = ChangePasswordSerializer(data=data, context={"request": mock_request})
-        # This may pass or fail depending on password validation
-        # Both are acceptable - just make sure it doesn't crash
         serializer.is_valid()
 
 
@@ -393,7 +402,7 @@ class TestPasswordResetConfirmSerializer:
         data = {
             "uid": "MTIz",
             "token": "abc123",
-            "new_password": "1234567",  # 7 characters
+            "new_password": "1234567",
             "new_password_confirm": "1234567",
         }
 
@@ -407,7 +416,7 @@ class TestPasswordResetConfirmSerializer:
         data = {
             "uid": "MTIz",
             "token": "abc123",
-            "new_password": "Pass1234",  # Exactly 8 characters
+            "new_password": "Pass1234",
             "new_password_confirm": "Pass1234",
         }
 
@@ -425,7 +434,6 @@ class TestPasswordResetConfirmSerializer:
 
         serializer = PasswordResetConfirmSerializer(data=data)
         assert not serializer.is_valid()
-        # All fields should have errors
         for field in ["uid", "token", "new_password", "new_password_confirm"]:
             assert field in serializer.errors
 
@@ -440,7 +448,6 @@ class TestIntegrationSerializersWithModels:
             "first_name": "Integration",
             "last_name": "Test",
             "phone_number": "09123456789",
-            "role": UserRoles.CUSTOMER,
             "password": "StrongPass123!",
             "password_confirm": "StrongPass123!",
         }
@@ -448,7 +455,6 @@ class TestIntegrationSerializersWithModels:
         serializer = RegisterSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
-        # Create user from validated data
         user = User.objects.create_user(
             email=serializer.validated_data["email"],
             password=serializer.validated_data["password"],
@@ -458,19 +464,3 @@ class TestIntegrationSerializersWithModels:
 
         assert user.email == "integrate@example.com"
         assert user.check_password("StrongPass123!")
-
-    def test_login_serializer_authenticates_user(self):
-        """Test that login serializer properly authenticates user."""
-        user = UserFactory(email="auth@example.com")
-        raw_password = "AuthPass123!"
-        user.set_password(raw_password)
-        user.save()
-
-        data = {
-            "email": "auth@example.com",
-            "password": raw_password,
-        }
-
-        serializer = LoginSerializer(data=data)
-        assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["user"] == user

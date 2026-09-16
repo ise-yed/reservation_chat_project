@@ -47,7 +47,7 @@ class ProviderOfferingListView(generics.ListAPIView):
     search_fields = [
         "title",
         "description",
-        "provider__specialty",
+        "provider__specialties__name",
     ]
     ordering_fields = ["created_at", "title", "price", "duration_minutes"]
     ordering = ["-created_at"]
@@ -101,7 +101,7 @@ class OrganizationOfferingListView(generics.ListAPIView):
         "provider__user__email",
         "provider__user__first_name",
         "provider__user__last_name",
-        "provider__specialty",
+        "provider__specialties__name"
     ]
     ordering_fields = ["created_at", "title", "price", "duration_minutes"]
     ordering = ["-created_at"]
@@ -148,7 +148,7 @@ class OfferingListCreateView(generics.ListCreateAPIView):
         "provider__user__email",
         "provider__user__first_name",
         "provider__user__last_name",
-        "provider__specialty",
+        "provider__specialties__name",
     ]
     ordering_fields = ["created_at", "title", "price", "duration_minutes"]
     ordering = ["-created_at"]
@@ -186,7 +186,7 @@ class MyOfferingListView(generics.ListAPIView):
         "title",
         "description",
         "organization__name",
-        "provider__specialty",
+        "provider__specialties__name",
     ]
     ordering_fields = ["created_at", "title", "price", "duration_minutes"]
     ordering = ["-created_at"]

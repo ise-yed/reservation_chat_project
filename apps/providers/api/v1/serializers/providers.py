@@ -68,8 +68,9 @@ class ProviderProfileCreateSerializer(serializers.Serializer):
         default="",
     )
 
-    specialty_ids = serializers.ListField(
-        child=serializers.UUIDField(),
+    specialty_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.filter(is_active=True),
+        many=True,
         required=False,
         default=list,
     )
@@ -137,8 +138,9 @@ class ProviderProfileUpdateSerializer(serializers.Serializer):
         allow_blank=True,
     )
 
-    specialty_ids = serializers.ListField(
-        child=serializers.UUIDField(),
+    specialty_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.filter(is_active=True),
+        many=True,
         required=False,
     )
 

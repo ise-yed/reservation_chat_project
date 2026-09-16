@@ -1,5 +1,6 @@
 import factory
 
+from apps.offerings.enums import VisitMode
 from apps.offerings.models import Offering
 from apps.providers.tests.factories import ProviderProfileFactory
 
@@ -16,6 +17,7 @@ class OfferingFactory(factory.django.DjangoModelFactory):
 
     title = factory.Sequence(lambda n: f"Offering {n}")
     description = "Test offering description"
+    visit_mode = VisitMode.IN_PERSON
     duration_minutes = 30
     buffer_before_minutes = 0
     buffer_after_minutes = 0

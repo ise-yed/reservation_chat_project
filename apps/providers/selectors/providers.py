@@ -12,15 +12,16 @@ def get_active_providers() -> QuerySet[ProviderProfile]:
     return (
         ProviderProfile.objects.filter(is_active=True, organization__is_active=True)
         .select_related("user", "organization", "branch")
+        .prefetch_related("specialties")
         .order_by("-created_at")
     )
 
 
 def get_provider_by_id(*, provider_id) -> ProviderProfile:
     """Return a provider profile by ID with related data prefetched."""
-    return ProviderProfile.objects.select_related("user", "organization", "branch").get(
-        id=provider_id
-    )
+    return ProviderProfile.objects.select_related(
+        "user", "organization", "branch"
+    ).prefetch_related("specialties").get(id=provider_id)
 
 
 def get_user_provider_profiles(*, user) -> QuerySet[ProviderProfile]:
@@ -28,6 +29,7 @@ def get_user_provider_profiles(*, user) -> QuerySet[ProviderProfile]:
     return (
         ProviderProfile.objects.filter(user=user)
         .select_related("user", "organization", "branch")
+        .prefetch_related("specialties")
         .order_by("-created_at")
     )
 
@@ -41,6 +43,7 @@ def get_organization_providers(
     queryset = (
         ProviderProfile.objects.filter(organization=organization)
         .select_related("user", "organization", "branch")
+        .prefetch_related("specialties")
         .order_by("-created_at")
     )
 

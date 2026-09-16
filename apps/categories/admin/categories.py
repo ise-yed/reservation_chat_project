@@ -8,7 +8,8 @@ CATEGORY_LIST_CACHE_KEY = "categories:active:list"
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "slug", "icon", "is_active", "parent", "created_at")
+    # فیلدهای icon و parent از اینجا حذف شدند
+    list_display = ("id", "name", "slug", "is_active", "created_at")
     list_filter = ("is_active", "created_at")
     search_fields = ("name", "description", "slug")
     prepopulated_fields = {"slug": ("name",)}

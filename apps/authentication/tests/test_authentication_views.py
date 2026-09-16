@@ -25,7 +25,6 @@ class TestRegisterView:
             "first_name": "John",
             "last_name": "Doe",
             "phone_number": "09123456789",
-            "role": UserRoles.CUSTOMER,
             "password": "StrongPass123!",
             "password_confirm": "StrongPass123!",
         }
@@ -51,7 +50,6 @@ class TestRegisterView:
         response = client.post(url, payload, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        # بررسی فرمت خطای سفارشی
         assert "errors" in response.data
         assert "password" in response.data["errors"]
 
@@ -91,23 +89,25 @@ class TestRegisterView:
         assert "errors" in response.data
         assert "email" in response.data["errors"]
 
-    def test_register_user_invalid_role(self):
-        """Test registration fails with invalid role."""
+    def test_register_user_ignores_role_field(self):
+        """Test registration ignores role field completely and forces CUSTOMER role."""
         client = APIClient()
         url = reverse("authentication:register")
 
         payload = {
             "email": "newuser@example.com",
-            "role": "invalid_role",
+            "role": "provider",  # Should be dropped silently
             "password": "StrongPass123!",
             "password_confirm": "StrongPass123!",
         }
 
         response = client.post(url, payload, format="json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "errors" in response.data
-        assert "role" in response.data["errors"]
+        # Because role is ignored, the request should be successful and create a CUSTOMER
+        assert response.status_code == status.HTTP_201_CREATED
+
+        user = User.objects.get(email="newuser@example.com")
+        assert user.role == UserRoles.CUSTOMER
 
     def test_register_user_weak_password(self):
         """Test registration fails with weak password."""
@@ -290,8 +290,6 @@ class TestMeView:
 
         response = client.patch(url, payload, format="json")
 
-        # بسته به serializer، ممکن است 200 برگردد (اگر ایمیل را ذخیره نکند)
-        # یا 400 (اگر اعتبارسنجی کند)
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
 
 
@@ -561,7 +559,6 @@ class TestAuthenticationFlow:
         register_url = reverse("authentication:register")
         register_payload = {
             "email": "flow@example.com",
-            "role": UserRoles.CUSTOMER,
             "password": "FlowPass123!",
             "password_confirm": "FlowPass123!",
         }

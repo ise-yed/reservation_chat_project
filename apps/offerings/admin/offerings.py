@@ -10,6 +10,7 @@ class OfferingAdmin(admin.ModelAdmin):
         "title",
         "organization",
         "provider",
+        "visit_mode",
         "duration_minutes",
         "price",
         "requires_approval",
@@ -17,6 +18,7 @@ class OfferingAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = (
+        "visit_mode",
         "is_active",
         "requires_approval",
         "organization",
@@ -30,6 +32,5 @@ class OfferingAdmin(admin.ModelAdmin):
         "provider__user__email",
         "provider__user__first_name",
         "provider__user__last_name",
-        "provider__specialty",
     )
     readonly_fields = ("id", "created_at", "updated_at")

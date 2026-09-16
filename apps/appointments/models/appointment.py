@@ -3,6 +3,7 @@ from django.db import models
 
 from apps.appointments.enums import AppointmentStatus
 from apps.common.models import BaseModel
+from apps.offerings.enums import VisitMode
 
 
 class Appointment(BaseModel):
@@ -32,6 +33,12 @@ class Appointment(BaseModel):
         "offerings.Offering",
         on_delete=models.PROTECT,
         related_name="appointments",
+    )
+
+    visit_mode = models.CharField(
+        max_length=32,
+        choices=VisitMode.choices,
+        db_index=True,
     )
 
     start_at = models.DateTimeField(db_index=True)
@@ -86,6 +93,7 @@ class Appointment(BaseModel):
             models.Index(fields=["provider", "blocked_start_at", "blocked_end_at"]),
             models.Index(fields=["organization", "status"]),
             models.Index(fields=["status", "start_at"]),
+            models.Index(fields=["visit_mode"]),
         ]
 
     def __str__(self):

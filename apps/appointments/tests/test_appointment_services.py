@@ -367,3 +367,69 @@ def test_update_appointment_status_publishes_status_notification(mock_publish):
     )
 
     mock_publish.assert_called_once_with(appointment=updated)
+from apps.offerings.enums import VisitMode
+
+def test_appointment_creates_snapshot_of_visit_mode():
+    """Test that appointment successfully records the visit mode of the offering."""
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider = ProviderProfileFactory()
+    
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        visit_mode=VisitMode.ONLINE_CHAT,  # Explicitly set to online chat
+    )
+
+    target_date = date.today() + timedelta(days=7)
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(10, 0),
+    )
+    start_at = make_aware_datetime(target_date, time(9, 0))
+
+    appointment = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=start_at,
+    )
+
+    assert appointment.visit_mode == VisitMode.ONLINE_CHAT
+
+
+def test_appointment_visit_mode_snapshot_is_immutable_when_offering_changes():
+    """Test that modifying an offering's visit mode does not affect existing appointments."""
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider = ProviderProfileFactory()
+    
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        visit_mode=VisitMode.ONLINE_CHAT,
+    )
+
+    target_date = date.today() + timedelta(days=7)
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(10, 0),
+    )
+    start_at = make_aware_datetime(target_date, time(9, 0))
+
+    appointment = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=start_at,
+    )
+
+    # Change the offering's visit mode after appointment is created
+    offering.visit_mode = VisitMode.IN_PERSON
+    offering.save()
+
+    # The appointment should retain its original snapshot
+    appointment.refresh_from_db()
+    assert appointment.visit_mode == VisitMode.ONLINE_CHAT
