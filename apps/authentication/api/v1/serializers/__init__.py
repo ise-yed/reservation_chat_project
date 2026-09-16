@@ -1,6 +1,8 @@
 from .authentication import (
-    ChangePasswordSerializer,
     LoginSerializer,
+    LogoutSerializer,
+    PasswordChangeConfirmSerializer,
+    PasswordChangeRequestSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
@@ -8,10 +10,12 @@ from .authentication import (
 )
 
 __all__ = [
-    "RegisterSerializer",
     "LoginSerializer",
-    "TokenPairSerializer",
-    "ChangePasswordSerializer",
-    "PasswordResetRequestSerializer",
+    "LogoutSerializer",
+    "PasswordChangeConfirmSerializer",
+    "PasswordChangeRequestSerializer",
     "PasswordResetConfirmSerializer",
+    "PasswordResetRequestSerializer",
+    "RegisterSerializer",
+    "TokenPairSerializer",
 ]

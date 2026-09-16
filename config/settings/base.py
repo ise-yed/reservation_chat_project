@@ -135,6 +135,9 @@ REST_FRAMEWORK = {
         "login": "5/min",
         "register": "1/hour",
         "password_reset": "3/hour",
+        "password_reset_confirm": "3/hour",
+        "password_change": "3/hour",
+        "password_change_confirm": "3/hour",
     },
 }
 

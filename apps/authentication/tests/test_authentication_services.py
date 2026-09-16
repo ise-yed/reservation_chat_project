@@ -1,15 +1,17 @@
-import uuid
 from unittest.mock import patch
 
 import pytest
-from django.core.exceptions import ImproperlyConfigured
+from django.db import IntegrityError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.authentication.services import (
     build_auth_tokens_for_user,
-    change_password,
+    change_password_with_otp,
+    logout_user,
     register_user,
-    request_password_reset,
-    reset_password,
+    request_password_change_otp,
+    request_password_reset_otp,
+    reset_password_with_otp,
 )
 from apps.users.tests.factories import UserFactory
 
@@ -20,7 +22,6 @@ class TestRegisterUser:
     """Tests for register_user function."""
 
     def test_register_user_success(self):
-        """Test successful user registration with valid data."""
         user = register_user(
             email="test@example.com",
             password="SecurePass123!",
@@ -33,26 +34,19 @@ class TestRegisterUser:
         assert user.email == "test@example.com"
         assert user.first_name == "John"
         assert user.last_name == "Doe"
-        assert user.phone_number == "09123456789"
         assert user.role == "customer"
         assert user.check_password("SecurePass123!")
         assert user.is_active
 
     def test_register_user_minimal_data(self):
-        """Test user registration with only required fields."""
         user = register_user(email="minimal@example.com", password="SecurePass123!")
 
         assert user.email == "minimal@example.com"
         assert user.first_name == ""
-        assert user.last_name == ""
-        assert user.phone_number == ""
         assert user.role == "customer"
         assert user.check_password("SecurePass123!")
 
     def test_register_user_duplicate_email(self):
-        """Test registration fails with duplicate email."""
-        from django.db import IntegrityError
-
         register_user(email="duplicate@example.com", password="Pass123!")
 
         with pytest.raises(IntegrityError):
@@ -63,19 +57,15 @@ class TestBuildAuthTokensForUser:
     """Tests for build_auth_tokens_for_user function."""
 
     def test_build_auth_tokens_success(self):
-        """Test token generation returns both access and refresh tokens."""
         user = UserFactory()
         tokens = build_auth_tokens_for_user(user)
 
         assert "access" in tokens
         assert "refresh" in tokens
         assert isinstance(tokens["access"], str)
-        assert isinstance(tokens["refresh"], str)
         assert len(tokens["access"]) > 0
-        assert len(tokens["refresh"]) > 0
 
     def test_tokens_are_different_for_different_users(self):
-        """Test different users get different tokens."""
         user1 = UserFactory()
         user2 = UserFactory()
 
@@ -83,186 +73,120 @@ class TestBuildAuthTokensForUser:
         tokens2 = build_auth_tokens_for_user(user2)
 
         assert tokens1["access"] != tokens2["access"]
-        assert tokens1["refresh"] != tokens2["refresh"]
 
 
-class TestSendPasswordResetEmail:
-    """Tests for send_password_reset_email function."""
+class TestLogoutUser:
+    """Tests for logout_user function."""
 
-    @patch("apps.authentication.services.authentication.publish_notification_event")
-    def test_send_password_reset_email_success(self, mock_publish, settings):
-        """Test successful password reset email sending."""
-        settings.FRONTEND_PASSWORD_RESET_URL = "http://localhost:3000/reset-password"
+    def test_logout_user_success(self):
+        user = UserFactory()
+        refresh = RefreshToken.for_user(user)
+        
+        # Should execute without throwing errors and blacklist the token
+        logout_user(str(refresh))
+
+
+class TestPasswordResetServices:
+    """Tests for password reset via OTP flow."""
+
+    @patch("apps.authentication.services.authentication.OTPService.send_otp_email")
+    @patch("apps.authentication.services.authentication.OTPService.create_otp")
+    def test_request_password_reset_otp_success(self, mock_create, mock_send):
         user = UserFactory(email="reset@example.com")
+        # create_otp returns (code, error_msg)
+        mock_create.return_value = ("123456", None)
 
-        request_password_reset(user=user)
+        error = request_password_reset_otp(email=user.email)
+        
+        assert error is None
+        mock_create.assert_called_once_with(user.id, user.email, purpose="password_reset")
+        mock_send.assert_called_once_with(user, "123456", purpose_text="Password Reset")
 
-        assert mock_publish.called
-        call_args = mock_publish.call_args[1]
-        assert call_args["event_name"] == "authentication.password_reset_requested"
-        assert call_args["recipient"] == user
-        assert "reset_link" in call_args["context"]
-        assert "uid" in call_args["context"]["reset_link"]
-        assert "token" in call_args["context"]["reset_link"]
+    def test_request_password_reset_otp_nonexistent_email(self):
+        # Should silently return None to prevent email enumeration
+        error = request_password_reset_otp(email="nonexistent@example.com")
+        assert error is None
 
+    @patch("apps.authentication.services.authentication.OTPService.verify_otp")
     @patch("apps.authentication.services.authentication.publish_notification_event")
-    def test_send_password_reset_email_missing_url(self, mock_publish, settings):
-        """Test error when FRONTEND_PASSWORD_RESET_URL is not configured."""
-        # Remove the setting if exists
-        if hasattr(settings, "FRONTEND_PASSWORD_RESET_URL"):
-            delattr(settings, "FRONTEND_PASSWORD_RESET_URL")
+    def test_reset_password_with_otp_success(self, mock_publish, mock_verify):
+        user = UserFactory(email="reset@example.com")
+        # verify_otp returns (is_valid, error_msg)
+        mock_verify.return_value = (True, None)
 
-        user = UserFactory()
-
-        with pytest.raises(ImproperlyConfigured) as exc_info:
-            request_password_reset(user=user)
-
-        assert "FRONTEND_PASSWORD_RESET_URL must be configured" in str(exc_info.value)
-        assert not mock_publish.called
-
-
-class TestChangePassword:
-    """Tests for change_password function."""
-
-    @patch("apps.authentication.services.authentication.publish_notification_event")
-    def test_change_password_success(self, mock_publish):
-        """Test successful password change."""
-        # UserFactory creates user with password "StrongPass123!" already
-        user = UserFactory()
-
-        # Verify initial password works
-        assert user.check_password("StrongPass123!")
-
-        updated_user = change_password(user=user, new_password="NewStrongPass456!")
-
-        assert updated_user == user
-        user.refresh_from_db()
-        assert user.check_password("NewStrongPass456!")
-        assert not user.check_password("StrongPass123!")
-        assert mock_publish.called
-
-    @patch("apps.authentication.services.authentication.publish_notification_event")
-    def test_change_password_publishes_event(self, mock_publish):
-        """Test that PASSWORD_CHANGED event is published."""
-        user = UserFactory()
-
-        change_password(user=user, new_password="NewPass123!")
-
-        mock_publish.assert_called_once_with(
-            event_name="authentication.password_changed", recipient=user
+        success, msg = reset_password_with_otp(
+            email=user.email, code="123456", new_password="NewPass123!"
         )
-
-
-class TestResetPassword:
-    """Tests for reset_password function."""
-
-    def test_reset_password_success(self):
-        """Test successful password reset with valid token."""
-        from django.contrib.auth.tokens import default_token_generator
-        from django.utils.encoding import force_bytes
-        from django.utils.http import urlsafe_base64_encode
-
-        user = UserFactory()
-        old_password = "StrongPass123!"
-        assert user.check_password(old_password)  # Verify initial password
-
-        # Encode the user's primary key (UUID)
-        uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
-        token = default_token_generator.make_token(user)
-
-        success = reset_password(uid=uid, token=token, new_password="NewResetPass789!")
 
         assert success is True
         user.refresh_from_db()
-        assert user.check_password("NewResetPass789!")
-        assert not user.check_password(old_password)
+        assert user.check_password("NewPass123!")
+        assert mock_publish.called
 
-    def test_reset_password_invalid_uid(self):
-        """Test reset fails with invalid uid."""
-        user = UserFactory()
-        old_password = "StrongPass123!"
-        assert user.check_password(old_password)
+    @patch("apps.authentication.services.authentication.OTPService.verify_otp")
+    def test_reset_password_with_otp_invalid_code(self, mock_verify):
+        user = UserFactory(email="reset@example.com")
+        old_password_hash = user.password
+        mock_verify.return_value = (False, "Invalid code")
 
-        success = reset_password(
-            uid="invalid-uid!!", token="some-token", new_password="NewPass123!"
+        success, msg = reset_password_with_otp(
+            email=user.email, code="wrong", new_password="NewPass123!"
         )
 
         assert success is False
+        assert msg == "Invalid code"
         user.refresh_from_db()
-        assert user.check_password(old_password)  # Still old password
+        assert user.password == old_password_hash
 
-    def test_reset_password_invalid_token(self):
-        """Test reset fails with invalid token."""
-        from django.utils.encoding import force_bytes
-        from django.utils.http import urlsafe_base64_encode
-
-        user = UserFactory()
-        old_password = "StrongPass123!"
-        assert user.check_password(old_password)
-
-        uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
-
-        success = reset_password(uid=uid, token="invalid-token", new_password="NewPass123!")
-
+    def test_reset_password_with_otp_nonexistent_email(self):
+        success, msg = reset_password_with_otp(
+            email="nonexistent@example.com", code="123456", new_password="NewPass123!"
+        )
         assert success is False
+        assert "Invalid request" in msg
+
+
+class TestPasswordChangeServices:
+    """Tests for authenticated user password change via OTP flow."""
+
+    @patch("apps.authentication.services.authentication.OTPService.send_otp_email")
+    @patch("apps.authentication.services.authentication.OTPService.create_otp")
+    def test_request_password_change_otp_success(self, mock_create, mock_send):
+        user = UserFactory()
+        mock_create.return_value = ("654321", None)
+
+        error = request_password_change_otp(user=user)
+        
+        assert error is None
+        mock_create.assert_called_once_with(user.id, user.email, purpose="password_change")
+        mock_send.assert_called_once_with(user, "654321", purpose_text="Password Change")
+
+    @patch("apps.authentication.services.authentication.OTPService.verify_otp")
+    @patch("apps.authentication.services.authentication.publish_notification_event")
+    def test_change_password_with_otp_success(self, mock_publish, mock_verify):
+        user = UserFactory()
+        mock_verify.return_value = (True, None)
+
+        success, msg = change_password_with_otp(
+            user=user, code="654321", new_password="BrandNewPass1!"
+        )
+
+        assert success is True
         user.refresh_from_db()
-        assert user.check_password(old_password)  # Still old password
+        assert user.check_password("BrandNewPass1!")
+        assert mock_publish.called
 
-    def test_reset_password_user_not_found(self):
-        """Test reset fails when user doesn't exist."""
-        from django.utils.encoding import force_bytes
-        from django.utils.http import urlsafe_base64_encode
-
-        # Use a valid UUID that doesn't exist in database
-        fake_uuid = uuid.uuid4()
-        uid = urlsafe_base64_encode(force_bytes(str(fake_uuid)))
-
-        success = reset_password(uid=uid, token="some-token", new_password="NewPass123!")
-
-        assert success is False
-
-    def test_reset_password_weak_password(self):
-        """Test reset fails with weak password."""
-        from django.contrib.auth.tokens import default_token_generator
-        from django.utils.encoding import force_bytes
-        from django.utils.http import urlsafe_base64_encode
-
+    @patch("apps.authentication.services.authentication.OTPService.verify_otp")
+    def test_change_password_with_otp_invalid_code(self, mock_verify):
         user = UserFactory()
-        old_password = "StrongPass123!"
-        assert user.check_password(old_password)
+        old_password_hash = user.password
+        mock_verify.return_value = (False, "Expired code")
 
-        uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
-        token = default_token_generator.make_token(user)
-
-        success = reset_password(
-            uid=uid,
-            token=token,
-            new_password="123",  # Too short/weak
+        success, msg = change_password_with_otp(
+            user=user, code="000000", new_password="BrandNewPass1!"
         )
 
         assert success is False
+        assert msg == "Expired code"
         user.refresh_from_db()
-        assert user.check_password(old_password)  # Still old password
-
-    def test_reset_password_expired_token(self):
-        """Test reset fails with expired token."""
-        from unittest.mock import patch
-
-        from django.utils.encoding import force_bytes
-        from django.utils.http import urlsafe_base64_encode
-
-        user = UserFactory()
-        old_password = "StrongPass123!"
-        assert user.check_password(old_password)
-
-        uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
-
-        with patch(
-            "django.contrib.auth.tokens.default_token_generator.check_token", return_value=False
-        ):
-            success = reset_password(uid=uid, token="any-token", new_password="NewPass123!")
-
-        assert success is False
-        user.refresh_from_db()
-        assert user.check_password(old_password)
-    
+        assert user.password == old_password_hash

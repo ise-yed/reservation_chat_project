@@ -1,28 +1,15 @@
-from urllib.parse import urlencode
-
-from django.conf import settings
-from django.contrib.auth import password_validation
-from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import transaction
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.authentication.services.otp import OTPService
 from apps.notifications.events.dispatcher import publish_notification_event
 from apps.notifications.events.event_types import NotificationEvent
 from apps.users.models import User
 
 
 @transaction.atomic
-def register_user(
-    *, email, password, first_name="", last_name="", phone_number="", role="customer"
-):
-    """
-    Register a new user account.
-
-    Creates a user with hashed password and returns the user instance.
-    """
+def register_user(*, email, password, first_name="", last_name="", phone_number="", role="customer"):
+    """Register a new user account."""
     user = User.objects.create_user(
         email=email,
         password=password,
@@ -43,77 +30,35 @@ def build_auth_tokens_for_user(user):
     }
 
 
-def request_password_reset(*, user):
-    """
-    Send password reset email to user.
+def logout_user(refresh_token: str):
+    """Blacklist the given refresh token."""
+    token = RefreshToken(refresh_token)
+    token.blacklist()
 
-    Generates reset token and publishes notification event.
-    """
-    reset_base_url = getattr(settings, "FRONTEND_PASSWORD_RESET_URL", None)
 
-    if not reset_base_url:
-        raise ImproperlyConfigured("FRONTEND_PASSWORD_RESET_URL must be configured.")
-
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
-
-    query_params = urlencode(
-        {
-            "uid": uid,
-            "token": token,
-        }
-    )
-
-    reset_link = f"{reset_base_url}?{query_params}"
-
-    publish_notification_event(
-        event_name=NotificationEvent.PASSWORD_RESET_REQUESTED,
-        recipient=user,
-        context={
-            "reset_link": reset_link,
-        },
-        run_after_commit=True,
-    )
+def request_password_reset_otp(*, email: str):
+    """Generate and send OTP for password reset if user exists."""
+    user = User.objects.filter(email__iexact=email, is_active=True).first()
+    
+    # We silently ignore non-existent emails to prevent user enumeration
+    if user:
+        code, error_msg = OTPService.create_otp(user.id, user.email, purpose="password_reset")
+        if error_msg:
+            return error_msg
+        OTPService.send_otp_email(user, code, purpose_text="Password Reset")
+    return None
 
 
 @transaction.atomic
-def change_password(*, user, new_password):
-    """
-    Change authenticated user's password.
+def reset_password_with_otp(*, email: str, code: str, new_password: str) -> tuple[bool, str]:
+    """Verify OTP and reset password."""
+    user = User.objects.filter(email__iexact=email, is_active=True).first()
+    if not user:
+        return False, "Invalid request or expired OTP."
 
-    Updates password and publishes password changed notification.
-    """
-    user.set_password(new_password)
-    user.save(update_fields=["password"])
-
-    publish_notification_event(
-        event_name=NotificationEvent.PASSWORD_CHANGED,
-        recipient=user,
-    )
-    return user
-
-
-@transaction.atomic
-def reset_password(*, uid, token, new_password):
-    """
-    Reset user's password using valid reset token.
-
-    Validates token and password strength, then updates password.
-    Returns True if successful, False otherwise.
-    """
-    try:
-        user_id = force_str(urlsafe_base64_decode(uid))
-        user = User.objects.get(pk=user_id)
-    except (TypeError, ValueError, User.DoesNotExist):
-        return False
-
-    if not default_token_generator.check_token(user, token):
-        return False
-
-    try:
-        password_validation.validate_password(new_password, user)
-    except ValidationError:
-        return False
+    is_valid, error_msg = OTPService.verify_otp(user.id, code, purpose="password_reset")
+    if not is_valid:
+        return False, error_msg
 
     user.set_password(new_password)
     user.save(update_fields=["password"])
@@ -122,4 +67,30 @@ def reset_password(*, uid, token, new_password):
         event_name=NotificationEvent.PASSWORD_CHANGED,
         recipient=user,
     )
-    return True
+    return True, ""
+
+
+def request_password_change_otp(*, user):
+    """Generate and send OTP for password change."""
+    code, error_msg = OTPService.create_otp(user.id, user.email, purpose="password_change")
+    if error_msg:
+        return error_msg
+    OTPService.send_otp_email(user, code, purpose_text="Password Change")
+    return None
+
+
+@transaction.atomic
+def change_password_with_otp(*, user, code: str, new_password: str) -> tuple[bool, str]:
+    """Verify OTP and change password for authenticated user."""
+    is_valid, error_msg = OTPService.verify_otp(user.id, code, purpose="password_change")
+    if not is_valid:
+        return False, error_msg
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+
+    publish_notification_event(
+        event_name=NotificationEvent.PASSWORD_CHANGED,
+        recipient=user,
+    )
+    return True, ""

@@ -1,105 +1,73 @@
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from apps.authentication.api.v1.serializers import (
-    ChangePasswordSerializer,
     LoginSerializer,
+    LogoutSerializer,
+    PasswordChangeConfirmSerializer,
+    PasswordChangeRequestSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
 )
-from apps.users.api.v1.serializers import UserReadSerializer, UserUpdateSerializer
-
-
-class TokenPairSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-    access = serializers.CharField()
-
-
-class AuthResponseSerializer(serializers.Serializer):
-    message = serializers.CharField()
-    user = UserReadSerializer()
-    tokens = TokenPairSerializer()
-
-
-class MessageResponseSerializer(serializers.Serializer):
-    message = serializers.CharField()
-
-
-class AccessTokenResponseSerializer(serializers.Serializer):
-    access = serializers.CharField()
+from apps.users.api.v1.serializers.users import UserReadSerializer, UserUpdateSerializer
 
 
 register_schema = extend_schema(
+    summary="Register a new user",
     request=RegisterSerializer,
-    responses={
-        201: AuthResponseSerializer,
-        400: OpenApiResponse(description="Invalid registration data."),
-    },
-    tags=["Authentication"],
+    responses={201: OpenApiResponse(description="User registered successfully.")},
 )
 
 login_schema = extend_schema(
+    summary="Login with email and password",
     request=LoginSerializer,
-    responses={
-        200: AuthResponseSerializer,
-        400: OpenApiResponse(description="Invalid login credentials."),
-    },
-    tags=["Authentication"],
+    responses={200: OpenApiResponse(description="Login successful.")},
 )
 
-me_get_schema = extend_schema(
-    responses={
-        200: UserReadSerializer,
-        401: OpenApiResponse(description="Authentication credentials were not provided."),
-    },
-    tags=["Authentication"],
-)
-
-me_patch_schema = extend_schema(
-    request=UserUpdateSerializer,
-    responses={
-        200: UserReadSerializer,
-        400: OpenApiResponse(description="Invalid profile update data."),
-        401: OpenApiResponse(description="Authentication credentials were not provided."),
-    },
-    tags=["Authentication"],
-)
-
-change_password_schema = extend_schema(
-    request=ChangePasswordSerializer,
-    responses={
-        200: MessageResponseSerializer,
-        400: OpenApiResponse(description="Invalid password change data."),
-        401: OpenApiResponse(description="Authentication credentials were not provided."),
-    },
-    tags=["Authentication"],
-)
-
-password_reset_request_schema = extend_schema(
-    request=PasswordResetRequestSerializer,
-    responses={
-        200: MessageResponseSerializer,
-        400: OpenApiResponse(description="Invalid password reset request data."),
-    },
-    tags=["Authentication"],
-)
-
-password_reset_confirm_schema = extend_schema(
-    request=PasswordResetConfirmSerializer,
-    responses={
-        200: MessageResponseSerializer,
-        400: OpenApiResponse(description="Invalid or expired reset token."),
-    },
-    tags=["Authentication"],
+logout_schema = extend_schema(
+    summary="Logout and blacklist refresh token",
+    request=LogoutSerializer,
+    responses={200: OpenApiResponse(description="Successfully logged out.")},
 )
 
 token_refresh_schema = extend_schema(
+    summary="Refresh JWT token",
     request=TokenRefreshSerializer,
-    responses={
-        200: AccessTokenResponseSerializer,
-        401: OpenApiResponse(description="Refresh token is invalid or expired."),
-    },
-    tags=["Authentication"],
+    responses={200: OpenApiResponse(description="Token refreshed.")},
+)
+
+me_get_schema = extend_schema(
+    summary="Get current user profile",
+    responses={200: UserReadSerializer},
+)
+
+me_patch_schema = extend_schema(
+    summary="Update current user profile",
+    request=UserUpdateSerializer,
+    responses={200: UserReadSerializer},
+)
+
+password_reset_request_schema = extend_schema(
+    summary="Request OTP for password reset",
+    request=PasswordResetRequestSerializer,
+    responses={200: OpenApiResponse(description="OTP sent if email exists.")},
+)
+
+password_reset_confirm_schema = extend_schema(
+    summary="Confirm password reset with OTP",
+    request=PasswordResetConfirmSerializer,
+    responses={200: OpenApiResponse(description="Password reset successfully.")},
+)
+
+password_change_request_schema = extend_schema(
+    summary="Request OTP for password change",
+    request=PasswordChangeRequestSerializer,
+    responses={200: OpenApiResponse(description="OTP sent.")},
+)
+
+password_change_confirm_schema = extend_schema(
+    summary="Confirm password change with OTP",
+    request=PasswordChangeConfirmSerializer,
+    responses={200: OpenApiResponse(description="Password changed successfully.")},
 )

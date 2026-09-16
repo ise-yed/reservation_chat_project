@@ -1,7 +1,9 @@
 from .authentication import (
-    ChangePasswordView,
     LoginView,
+    LogoutView,
     MeView,
+    PasswordChangeConfirmView,
+    PasswordChangeRequestView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RefreshTokenView,
@@ -9,11 +11,13 @@ from .authentication import (
 )
 
 __all__ = [
-    "RegisterView",
     "LoginView",
+    "LogoutView",
     "MeView",
-    "ChangePasswordView",
-    "PasswordResetRequestView",
+    "PasswordChangeConfirmView",
+    "PasswordChangeRequestView",
     "PasswordResetConfirmView",
+    "PasswordResetRequestView",
     "RefreshTokenView",
+    "RegisterView",
 ]

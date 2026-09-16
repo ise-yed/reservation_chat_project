@@ -5,43 +5,46 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.authentication.api.v1.docs import (
-    change_password_schema,
     login_schema,
+    logout_schema,
     me_get_schema,
     me_patch_schema,
+    password_change_confirm_schema,
+    password_change_request_schema,
     password_reset_confirm_schema,
     password_reset_request_schema,
     register_schema,
     token_refresh_schema,
 )
 from apps.authentication.api.v1.serializers import (
-    ChangePasswordSerializer,
     LoginSerializer,
+    LogoutSerializer,
+    PasswordChangeConfirmSerializer,
+    PasswordChangeRequestSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
 )
 from apps.authentication.services import (
     build_auth_tokens_for_user,
-    change_password,
+    change_password_with_otp,
+    logout_user,
     register_user,
-    request_password_reset,
-    reset_password,
+    request_password_change_otp,
+    request_password_reset_otp,
+    reset_password_with_otp,
 )
 from apps.users.api.v1.serializers.users import UserReadSerializer, UserUpdateSerializer
 from apps.users.enums import UserRoles
-from apps.users.models import User
 
 
 class RegisterView(APIView):
-    """Register a new user and return the authenticated user with JWT tokens."""
-
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "register"
+    
     @register_schema
     def post(self, request):
-        """Create a new user account."""
         serializer = RegisterSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -67,15 +70,12 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    """Authenticate a user and return JWT tokens."""
-
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
     @login_schema
     def post(self, request):
-        """Authenticate a user using email and password."""
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -92,109 +92,128 @@ class LoginView(APIView):
         )
 
 
-class MeView(APIView):
-    """Retrieve or partially update the authenticated user's profile."""
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
+    @logout_schema
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            logout_user(refresh_token=serializer.validated_data["refresh"])
+        except Exception:
+            return Response(
+                {"message": "Token is invalid or already blacklisted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+
+
+class RefreshTokenView(TokenRefreshView):
+    @token_refresh_schema
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @me_get_schema
     def get(self, request):
-        """Return the authenticated user's profile."""
         return Response(UserReadSerializer(request.user).data)
 
     @me_patch_schema
     def patch(self, request):
-        """Partially update the authenticated user's profile."""
         serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         return Response(UserReadSerializer(request.user).data)
 
 
-class ChangePasswordView(APIView):
-    """Change the authenticated user's password."""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    @change_password_schema
-    def post(self, request):
-        """Update the authenticated user's password after validating the current password."""
-        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-
-        change_password(
-            user=request.user,
-            new_password=serializer.validated_data["new_password"],
-        )
-
-        return Response(
-            {"message": "Password changed successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-
 class PasswordResetRequestView(APIView):
-    """Send a password reset email if the submitted email belongs to an active user."""
-
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "password_reset"
+
     @password_reset_request_schema
     def post(self, request):
-        """Request a password reset link."""
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"].lower().strip()
-        user = User.objects.filter(email__iexact=email, is_active=True).first()
-
-        if user:
-            request_password_reset(user=user)
+        error_msg = request_password_reset_otp(email=email)
+        
+        if error_msg:
+            return Response({"message": error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         return Response(
-            {
-                "message": (
-                    "If an account with this email exists, a password reset link has been sent."
-                )
-            },
+            {"message": "If an account with this email exists, an OTP has been sent."},
             status=status.HTTP_200_OK,
         )
 
 
 class PasswordResetConfirmView(APIView):
-    """Reset a user's password using a valid password reset token."""
-
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset_confirm"
 
     @password_reset_confirm_schema
     def post(self, request):
-        """Confirm a password reset request and set the new password."""
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        success = reset_password(
-            uid=serializer.validated_data["uid"],
-            token=serializer.validated_data["token"],
+        success, error_msg = reset_password_with_otp(
+            email=serializer.validated_data["email"],
+            code=serializer.validated_data["code"],
             new_password=serializer.validated_data["new_password"],
         )
 
         if not success:
-            return Response(
-                {"message": "Invalid or expired reset token."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"message": error_msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+
+
+class PasswordChangeRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_change"
+
+    @password_change_request_schema
+    def post(self, request):
+        serializer = PasswordChangeRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        error_msg = request_password_change_otp(user=request.user)
+        
+        if error_msg:
+            return Response({"message": error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         return Response(
-            {"message": "Password has been reset successfully."},
+            {"message": "An OTP has been sent to your email to confirm password change."},
             status=status.HTTP_200_OK,
         )
 
 
-class RefreshTokenView(TokenRefreshView):
-    """Refresh an access token using a valid refresh token."""
+class PasswordChangeConfirmView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_change_confirm"
 
-    @token_refresh_schema
-    def post(self, request, *args, **kwargs):
-        """Return a new access token for a valid refresh token."""
-        return super().post(request, *args, **kwargs)
+    @password_change_confirm_schema
+    def post(self, request):
+        serializer = PasswordChangeConfirmSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        success, error_msg = change_password_with_otp(
+            user=request.user,
+            code=serializer.validated_data["code"],
+            new_password=serializer.validated_data["new_password"],
+        )
+
+        if not success:
+            return Response({"message": error_msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
