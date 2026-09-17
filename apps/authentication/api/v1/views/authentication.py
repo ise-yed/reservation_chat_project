@@ -143,11 +143,7 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"].lower().strip()
-        error_msg = request_password_reset_otp(email=email)
-        
-        if error_msg:
-            return Response({"message": error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
+        request_password_reset_otp(email=email)
         return Response(
             {"message": "If an account with this email exists, an OTP has been sent."},
             status=status.HTTP_200_OK,
