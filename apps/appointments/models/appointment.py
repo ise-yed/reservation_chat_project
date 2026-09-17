@@ -34,6 +34,14 @@ class Appointment(BaseModel):
         on_delete=models.PROTECT,
         related_name="appointments",
     )
+    
+    conversation = models.ForeignKey(
+        "chat.Conversation",
+        on_delete=models.PROTECT,
+        related_name="appointments",
+        null=True,
+        blank=True,
+    )
 
     visit_mode = models.CharField(
         max_length=32,
@@ -55,9 +63,11 @@ class Appointment(BaseModel):
     )
 
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
     notes = models.TextField(blank=True)
 
+    # تکمیل و لغو
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
     cancel_reason = models.TextField(blank=True)
     cancelled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

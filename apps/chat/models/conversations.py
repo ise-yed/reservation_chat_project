@@ -11,9 +11,16 @@ class Conversation(BaseModel):
         related_name="conversations_as_customer",
     )
     provider = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  
+        settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="conversations_as_provider",
+    )
+    last_message = models.ForeignKey(
+        "chat.Message",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
     )
     patient_last_read_message = models.ForeignKey(
         "chat.Message",
@@ -37,6 +44,10 @@ class Conversation(BaseModel):
             models.UniqueConstraint(
                 fields=["customer", "provider"],
                 name="unique_conversation_per_user_pair",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(customer=models.F("provider")),
+                name="conversation_customer_not_provider",
             )
         ]
 

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -25,11 +25,12 @@ from apps.appointments.services.notification import (
     publish_appointment_status_notification,
 )
 from apps.availability.services import get_available_slots, invalidate_provider_slots_cache
+from apps.chat.models import Conversation
+from apps.offerings.enums import VisitMode
 from apps.providers.models import ProviderProfile
 
 
 def _calculate_appointment_times(*, offering, start_at):
-    """Calculate appointment times based on offering and start time."""
     service_duration = timedelta(minutes=offering.duration_minutes)
     buffer_before = timedelta(minutes=offering.buffer_before_minutes)
     buffer_after = timedelta(minutes=offering.buffer_after_minutes)
@@ -42,19 +43,33 @@ def _calculate_appointment_times(*, offering, start_at):
 
 
 def _validate_start_at_is_available_slot(*, provider, offering, start_at) -> None:
-    """Validate that the start time is available."""
     target_date = timezone.localtime(start_at).date()
-
     slots = get_available_slots(
         provider_id=provider.id,
         offering_id=offering.id,
         target_date=target_date,
     )
-
     available_start_times = {slot["start_at"] for slot in slots}
 
     if start_at not in available_start_times:
         raise ValidationError({"start_at": ["Selected start time is not available."]})
+
+
+def _get_or_create_conversation_safe(customer, provider_user):
+    """Safely get or create conversation handling Race Conditions according to V4 spec."""
+    try:
+        # استفاده از atomic داخلی تا در صورت IntegrityError کل ساخت نوبت متوقف نشود
+        with transaction.atomic():
+            conversation, _ = Conversation.objects.get_or_create(
+                customer=customer,
+                provider=provider_user,
+            )
+            return conversation
+    except IntegrityError:
+        return Conversation.objects.get(
+            customer=customer,
+            provider=provider_user,
+        )
 
 
 @transaction.atomic
@@ -66,32 +81,20 @@ def create_appointment(
     start_at,
     notes: str = "",
 ) -> Appointment:
-    """Create a new appointment."""
     validate_appointment_start_at(start_at=start_at)
 
     provider = get_provider_or_raise(provider_id=provider_id)
     offering = get_offering_or_raise(offering_id=offering_id)
 
-    validate_provider_and_offering(
-        provider=provider,
-        offering=offering,
-    )
-
-    _validate_start_at_is_available_slot(
-        provider=provider,
-        offering=offering,
-        start_at=start_at,
-    )
+    validate_provider_and_offering(provider=provider, offering=offering)
+    _validate_start_at_is_available_slot(provider=provider, offering=offering, start_at=start_at)
 
     locked_provider = (
         ProviderProfile.objects.select_for_update(of=("self",))
         .select_related("organization", "user")
         .get(id=provider.id)
     )
-    validate_provider_and_offering(
-        provider=locked_provider,
-        offering=offering,
-    )
+    validate_provider_and_offering(provider=locked_provider, offering=offering)
 
     end_at, blocked_start_at, blocked_end_at = _calculate_appointment_times(
         offering=offering,
@@ -108,12 +111,18 @@ def create_appointment(
         AppointmentStatus.PENDING if offering.requires_approval else AppointmentStatus.CONFIRMED
     )
 
+    conversation = None
+    # ایجاد چت منحصراً برای نوبت‌های "آنلاین" و "تأییدشده"
+    if offering.visit_mode == VisitMode.ONLINE_CHAT and initial_status == AppointmentStatus.CONFIRMED:
+        conversation = _get_or_create_conversation_safe(customer, locked_provider.user)
+
     appointment = Appointment.objects.create(
         organization=locked_provider.organization,
         branch_id=locked_provider.branch_id,
         customer=customer,
         provider=locked_provider,
         offering=offering,
+        conversation=conversation,
         visit_mode=offering.visit_mode,
         start_at=start_at,
         end_at=end_at,
@@ -136,6 +145,7 @@ def create_appointment(
 
     return appointment
 
+
 @transaction.atomic
 def cancel_appointment(
     *,
@@ -143,7 +153,6 @@ def cancel_appointment(
     actor,
     cancel_reason: str = "",
 ) -> Appointment:
-    """Cancel an appointment."""
     if not can_cancel_appointment(actor, appointment):
         raise PermissionDenied("You are not allowed to cancel this appointment.")
 
@@ -151,8 +160,6 @@ def cancel_appointment(
         raise ValidationError("Cannot cancel an appointment that has already started.")
 
     validate_appointment_is_cancellable(appointment=appointment)
-
-    old_status = appointment.status
 
     if appointment.customer_id == actor.id:
         appointment.status = AppointmentStatus.CANCELLED_BY_CUSTOMER
@@ -192,21 +199,28 @@ def update_appointment_status(
     actor,
     status: str,
 ) -> Appointment:
-    """Update appointment status."""
     if not can_manage_appointment(actor, appointment):
         raise PermissionDenied("You are not allowed to update this appointment status.")
 
-    validate_status_transition(
-        appointment=appointment,
-        new_status=status,
-    )
+    validate_status_transition(appointment=appointment, new_status=status)
 
     old_status = appointment.status
     appointment.status = status
-    appointment.save(update_fields=["status", "updated_at"])
+    update_fields = ["status", "updated_at"]
 
+    # ثبت زمان پایان (تکمیل) نوبت
+    if status == AppointmentStatus.COMPLETED and old_status != AppointmentStatus.COMPLETED:
+        appointment.completed_at = timezone.now()
+        update_fields.append("completed_at")
+
+    # اتصال به چت فقط در صورت تغییر وضعیت از PENDING به CONFIRMED برای ویزیت‌های آنلاین
+    if status == AppointmentStatus.CONFIRMED and appointment.visit_mode == VisitMode.ONLINE_CHAT and appointment.conversation_id is None:
+        conversation = _get_or_create_conversation_safe(appointment.customer, appointment.provider.user)
+        appointment.conversation = conversation
+        update_fields.append("conversation")
+
+    appointment.save(update_fields=update_fields)
     publish_appointment_status_notification(appointment=appointment)
-
 
     transaction.on_commit(
         lambda: invalidate_provider_slots_cache(

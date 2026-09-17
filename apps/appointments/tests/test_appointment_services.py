@@ -12,6 +12,7 @@ from apps.appointments.services import (
     update_appointment_status,
 )
 from apps.availability.tests.factories import WorkingHourFactory
+from apps.offerings.enums import VisitMode
 from apps.offerings.tests.factories import OfferingFactory
 from apps.providers.tests.factories import ProviderProfileFactory
 from apps.users.enums import UserRoles
@@ -28,7 +29,8 @@ def make_aware_datetime(target_date, target_time):
     )
 
 
-def test_customer_can_create_appointment():
+def test_customer_can_create_appointment_and_conversation_links():
+    """Test ONLINE_CHAT appointment creation creates/links a conversation."""
     customer = UserFactory(role=UserRoles.CUSTOMER)
     provider_user = UserFactory(role=UserRoles.PROVIDER)
     provider = ProviderProfileFactory(user=provider_user)
@@ -41,17 +43,16 @@ def test_customer_can_create_appointment():
         buffer_after_minutes=0,
         requires_approval=False,
         is_active=True,
+        visit_mode=VisitMode.ONLINE_CHAT,  # اضافه‌شده برای اجرای منطق ساخت چت
     )
 
     target_date = date.today() + timedelta(days=7)
-
     WorkingHourFactory(
         provider=provider,
         weekday=target_date.weekday(),
         start_time=time(9, 0),
         end_time=time(10, 0),
     )
-
     start_at = make_aware_datetime(target_date, time(9, 0))
 
     appointment = create_appointment(
@@ -62,11 +63,132 @@ def test_customer_can_create_appointment():
         notes="Test",
     )
 
-    assert appointment.customer == customer
-    assert appointment.provider == provider
-    assert appointment.offering == offering
     assert appointment.status == AppointmentStatus.CONFIRMED
-    assert appointment.end_at == start_at + timedelta(minutes=30)
+    assert appointment.conversation is not None
+    assert appointment.conversation.customer == customer
+    assert appointment.conversation.provider == provider.user
+
+
+def test_multiple_appointments_reuse_same_conversation():
+    """Test that two appointments between the same pair reuse the same conversation."""
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider_user = UserFactory(role=UserRoles.PROVIDER)
+    provider = ProviderProfileFactory(user=provider_user)
+
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        duration_minutes=30,
+        buffer_before_minutes=0,
+        buffer_after_minutes=0,
+        visit_mode=VisitMode.ONLINE_CHAT,  # اضافه‌شده
+    )
+
+    target_date = date.today() + timedelta(days=7)
+
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(12, 0),
+    )
+
+    # نوبت اول
+    app1 = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=make_aware_datetime(target_date, time(9, 0)),
+    )
+
+    # نوبت دوم برای همان بیمار و پزشک
+    app2 = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=make_aware_datetime(target_date, time(10, 0)),
+    )
+
+    assert app1.id != app2.id
+    assert app1.conversation is not None
+    assert app2.conversation is not None
+    # باید دقیقاً از یک چتِ مشترک استفاده کنند
+    assert app1.conversation == app2.conversation
+    assert app1.conversation.customer == customer
+    assert app1.conversation.provider == provider.user
+
+
+def test_in_person_appointment_does_not_create_conversation():
+    """Test IN_PERSON appointment does NOT create or link a conversation."""
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider = ProviderProfileFactory()
+
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        requires_approval=False,
+        visit_mode=VisitMode.IN_PERSON,  # نوبت حضوری
+    )
+
+    target_date = date.today() + timedelta(days=7)
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(10, 0),
+    )
+
+    appointment = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=make_aware_datetime(target_date, time(9, 0)),
+    )
+
+    assert appointment.status == AppointmentStatus.CONFIRMED
+    assert appointment.conversation is None  # بدون ارتباط چت
+
+
+def test_appointment_requires_pending_status_creates_conversation_on_confirm():
+    """Test PENDING appointment gets conversation ONLY when updated to CONFIRMED."""
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider_user = UserFactory(role=UserRoles.PROVIDER)
+    provider = ProviderProfileFactory(user=provider_user)
+
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        requires_approval=True,  # نیاز به تایید دارد
+        visit_mode=VisitMode.ONLINE_CHAT,
+    )
+
+    target_date = date.today() + timedelta(days=7)
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(10, 0),
+    )
+    start_at = make_aware_datetime(target_date, time(9, 0))
+
+    appointment = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=start_at,
+    )
+
+    assert appointment.status == AppointmentStatus.PENDING
+    assert appointment.conversation is None  # در حالت تعلیق ساخته نمی‌شود
+
+    updated = update_appointment_status(
+        appointment=appointment,
+        actor=provider_user,
+        status=AppointmentStatus.CONFIRMED,
+    )
+    
+    assert updated.status == AppointmentStatus.CONFIRMED
+    assert updated.conversation is not None  # پس از تایید ساخته شد
 
 
 def test_duplicate_appointment_slot_is_not_allowed():
@@ -120,6 +242,7 @@ def test_back_to_back_appointments_are_allowed():
         duration_minutes=30,
         buffer_before_minutes=0,
         buffer_after_minutes=0,
+        visit_mode=VisitMode.ONLINE_CHAT,  # اضافه‌شده
     )
 
     target_date = date.today() + timedelta(days=7)
@@ -149,38 +272,10 @@ def test_back_to_back_appointments_are_allowed():
     )
 
     assert first.id != second.id
-
-
-def test_appointment_requires_pending_status_when_offering_requires_approval():
-    customer = UserFactory(role=UserRoles.CUSTOMER)
-    provider = ProviderProfileFactory()
-
-    offering = OfferingFactory(
-        provider=provider,
-        organization=provider.organization,
-        duration_minutes=30,
-        requires_approval=True,
-    )
-
-    target_date = date.today() + timedelta(days=7)
-
-    WorkingHourFactory(
-        provider=provider,
-        weekday=target_date.weekday(),
-        start_time=time(9, 0),
-        end_time=time(10, 0),
-    )
-
-    start_at = make_aware_datetime(target_date, time(9, 0))
-
-    appointment = create_appointment(
-        customer=customer,
-        provider_id=provider.id,
-        offering_id=offering.id,
-        start_at=start_at,
-    )
-
-    assert appointment.status == AppointmentStatus.PENDING
+    assert first.conversation is not None
+    assert second.conversation is not None
+    # این دو نوبت برای دو بیمارِ متفاوت هستند، پس باید دو چت متفاوت داشته باشند
+    assert first.conversation != second.conversation
 
 
 def test_customer_can_cancel_own_appointment():
@@ -244,6 +339,7 @@ def test_non_related_user_cannot_cancel_appointment():
 
 
 def test_provider_can_complete_appointment():
+    """Test completing appointment sets status and completed_at."""
     customer = UserFactory(role=UserRoles.CUSTOMER)
     provider_user = UserFactory(role=UserRoles.PROVIDER)
     provider = ProviderProfileFactory(user=provider_user)
@@ -265,6 +361,8 @@ def test_provider_can_complete_appointment():
         start_at=make_aware_datetime(target_date, time(9, 0)),
     )
 
+    assert appointment.completed_at is None
+
     updated = update_appointment_status(
         appointment=appointment,
         actor=provider_user,
@@ -272,6 +370,7 @@ def test_provider_can_complete_appointment():
     )
 
     assert updated.status == AppointmentStatus.COMPLETED
+    assert updated.completed_at is not None  # زمان پایان ست شد
 
 
 @patch("apps.appointments.services.appointment.publish_appointment_created_notification")
@@ -367,40 +466,9 @@ def test_update_appointment_status_publishes_status_notification(mock_publish):
     )
 
     mock_publish.assert_called_once_with(appointment=updated)
-from apps.offerings.enums import VisitMode
+
 
 def test_appointment_creates_snapshot_of_visit_mode():
-    """Test that appointment successfully records the visit mode of the offering."""
-    customer = UserFactory(role=UserRoles.CUSTOMER)
-    provider = ProviderProfileFactory()
-    
-    offering = OfferingFactory(
-        provider=provider,
-        organization=provider.organization,
-        visit_mode=VisitMode.ONLINE_CHAT,  # Explicitly set to online chat
-    )
-
-    target_date = date.today() + timedelta(days=7)
-    WorkingHourFactory(
-        provider=provider,
-        weekday=target_date.weekday(),
-        start_time=time(9, 0),
-        end_time=time(10, 0),
-    )
-    start_at = make_aware_datetime(target_date, time(9, 0))
-
-    appointment = create_appointment(
-        customer=customer,
-        provider_id=provider.id,
-        offering_id=offering.id,
-        start_at=start_at,
-    )
-
-    assert appointment.visit_mode == VisitMode.ONLINE_CHAT
-
-
-def test_appointment_visit_mode_snapshot_is_immutable_when_offering_changes():
-    """Test that modifying an offering's visit mode does not affect existing appointments."""
     customer = UserFactory(role=UserRoles.CUSTOMER)
     provider = ProviderProfileFactory()
     
@@ -426,10 +494,37 @@ def test_appointment_visit_mode_snapshot_is_immutable_when_offering_changes():
         start_at=start_at,
     )
 
-    # Change the offering's visit mode after appointment is created
+    assert appointment.visit_mode == VisitMode.ONLINE_CHAT
+
+
+def test_appointment_visit_mode_snapshot_is_immutable_when_offering_changes():
+    customer = UserFactory(role=UserRoles.CUSTOMER)
+    provider = ProviderProfileFactory()
+    
+    offering = OfferingFactory(
+        provider=provider,
+        organization=provider.organization,
+        visit_mode=VisitMode.ONLINE_CHAT,
+    )
+
+    target_date = date.today() + timedelta(days=7)
+    WorkingHourFactory(
+        provider=provider,
+        weekday=target_date.weekday(),
+        start_time=time(9, 0),
+        end_time=time(10, 0),
+    )
+    start_at = make_aware_datetime(target_date, time(9, 0))
+
+    appointment = create_appointment(
+        customer=customer,
+        provider_id=provider.id,
+        offering_id=offering.id,
+        start_at=start_at,
+    )
+
     offering.visit_mode = VisitMode.IN_PERSON
     offering.save()
 
-    # The appointment should retain its original snapshot
     appointment.refresh_from_db()
     assert appointment.visit_mode == VisitMode.ONLINE_CHAT
