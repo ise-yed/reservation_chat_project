@@ -65,16 +65,19 @@ class TestSendMessageService:
         assert setup["conversation"].last_message == msg
 
     def test_send_file_message_success(self, service_setup):
-        setup = service_setup
-        dummy_file = SimpleUploadedFile("test.pdf", b"file_content", content_type="application/pdf")
-        msg = send_message(
-            conversation=setup["conversation"],
-            sender=setup["provider"],
-            msg_type=MessageType.DOCUMENT,
-            attachment=dummy_file
-        )
-        assert msg.type == MessageType.DOCUMENT
-        assert msg.file_name == "test.pdf"
+            setup = service_setup
+            valid_pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n"
+            dummy_file = SimpleUploadedFile("test.pdf", valid_pdf_bytes, content_type="application/pdf")
+            
+            msg = send_message(
+                conversation=setup["conversation"],
+                sender=setup["provider"],
+                msg_type=MessageType.DOCUMENT,
+                attachment=dummy_file
+            )
+            assert msg.type == MessageType.DOCUMENT
+            assert msg.file_name == "test.pdf"
+            assert msg.mime_type == "application/pdf"
 
     def test_send_message_permission_denied(self, service_setup):
         # شخص ثالث نمی‌تواند پیام بدهد

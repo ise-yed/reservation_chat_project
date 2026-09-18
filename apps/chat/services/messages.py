@@ -8,13 +8,14 @@ from apps.chat.enums import MessageType
 from apps.chat.models import Message
 from apps.chat.services.permissions import can_send_message
 from apps.chat.services.realtime import broadcast_new_message, broadcast_message_deleted
-
+from apps.chat.validators import validate_and_get_mime_type
 @transaction.atomic
 def send_message(*, conversation, sender, msg_type=MessageType.TEXT, content="", attachment=None) -> Message:
     if not can_send_message(conversation=conversation, user=sender):
         raise PermissionDenied("You do not have permission to send messages in this conversation at this time.")
 
     content = content.strip() if content else ""
+    real_mime_type = ""
     
     if msg_type == MessageType.TEXT:
         if not content:
@@ -26,12 +27,7 @@ def send_message(*, conversation, sender, msg_type=MessageType.TEXT, content="",
         if not attachment:
             raise ValidationError({"attachment": [f"Attachment is required for {msg_type} messages."]})
         
-        # تشخیص فرمت ساده برای MVP (نسخه پیشرفته در فاز ۱۰)
-        content_type = getattr(attachment, "content_type", "") or ""
-        if msg_type == MessageType.IMAGE and not content_type.startswith("image/"):
-            raise ValidationError({"attachment": ["File must be an image type (e.g., image/jpeg, image/png)."]})
-        if msg_type == MessageType.DOCUMENT and content_type.startswith("image/"):
-            raise ValidationError({"attachment": ["Images should be sent as IMAGE type, not DOCUMENT."]})
+        real_mime_type = validate_and_get_mime_type(attachment, msg_type)
             
     message = Message.objects.create(
         conversation=conversation,
@@ -44,14 +40,15 @@ def send_message(*, conversation, sender, msg_type=MessageType.TEXT, content="",
     if attachment:
         message.file_name = attachment.name
         message.file_size = attachment.size
-        message.mime_type = getattr(attachment, "content_type", "") or "application/octet-stream"
+        message.mime_type = real_mime_type
         message.save(update_fields=["file_name", "file_size", "mime_type"])
 
     conversation.last_message = message
     conversation.save(update_fields=["last_message", "updated_at"])
-    transaction.on_commit(lambda: broadcast_new_message(message=message))
-    return message
 
+    transaction.on_commit(lambda: broadcast_new_message(message=message))
+
+    return message
 
 @transaction.atomic
 def delete_message(*, message, actor) -> Message:
