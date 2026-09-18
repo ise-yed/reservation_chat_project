@@ -106,4 +106,27 @@ appointment_status_schema = extend_schema(
         404: OpenApiResponse(description="Appointment not found."),
     },
     tags=["Appointments"],
+    
+)
+
+
+appointment_chat_access_schema = extend_schema(
+    summary="Get Chat Access Status",
+    description="Returns the chat access rules and current status for a specific appointment.",
+    responses={
+        200: OpenApiResponse(description="Chat access details."),
+        404: OpenApiResponse(description="Appointment not found or not participant.")
+    },
+    tags=["Appointments (Chat)"]
+)
+
+appointment_complete_schema = extend_schema(
+    summary="Complete Appointment Visit",
+    description="Manually end an online chat visit by the doctor. Freezes the patient's chat capability.",
+    responses={
+        200: OpenApiResponse(description="Appointment completed successfully."),
+        400: OpenApiResponse(description="Validation error (e.g., not online, not confirmed)."),
+        403: OpenApiResponse(description="Permission denied (Only doctor can complete)."),
+    },
+    tags=["Appointments (Chat)"]
 )
