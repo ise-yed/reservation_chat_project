@@ -1,4 +1,5 @@
 from django.core.exceptions import PermissionDenied
+from django.core.mail import message
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -6,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from apps.chat.enums import MessageType
 from apps.chat.models import Message
 from apps.chat.services.permissions import can_send_message
-
+from apps.chat.services.realtime import broadcast_new_message, broadcast_message_deleted
 
 @transaction.atomic
 def send_message(*, conversation, sender, msg_type=MessageType.TEXT, content="", attachment=None) -> Message:
@@ -48,7 +49,7 @@ def send_message(*, conversation, sender, msg_type=MessageType.TEXT, content="",
 
     conversation.last_message = message
     conversation.save(update_fields=["last_message", "updated_at"])
-
+    transaction.on_commit(lambda: broadcast_new_message(message=message))
     return message
 
 
@@ -64,7 +65,7 @@ def delete_message(*, message, actor) -> Message:
     message.deleted_at = timezone.now()
     message.deleted_by = actor
     message.save(update_fields=["is_deleted", "deleted_at", "deleted_by"])
-
+    transaction.on_commit(lambda: broadcast_message_deleted(message=message))
     return message
 
 
