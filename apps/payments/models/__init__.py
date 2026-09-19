@@ -1,3 +1,3 @@
-from .payments import Payment, PaymentTransaction
+from .payments import Payment
 
-__all__ = ["Payment", "PaymentTransaction"]
+__all__ = ["Payment"]

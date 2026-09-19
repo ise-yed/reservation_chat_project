@@ -35,16 +35,16 @@ def validate_and_get_mime_type(file, msg_type: str) -> str:
             raise ValidationError(
                 {"attachment": [f"Format '{mime}' is not supported. Only JPG, PNG, and WEBP are allowed."]}
             )
-        
+
         # --- بررسی ساختاری تصویر با Pillow ---
         try:
             file.seek(0)
             with Image.open(file) as img:
-                img.verify()  
+                img.verify()
             file.seek(0)
         except (UnidentifiedImageError, Exception):
             raise ValidationError({"attachment": ["The uploaded file is not a valid or intact image."]})
-            
+
     elif msg_type == MessageType.DOCUMENT:
         if mime not in ALLOWED_DOC_MIMES:
             raise ValidationError(

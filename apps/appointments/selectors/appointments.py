@@ -19,7 +19,9 @@ def get_appointment_by_id(*, appointment_id) -> Appointment:
         "offering",
         "created_by",
         "cancelled_by",
+        "payment",
     ).get(id=appointment_id)
+
 
 
 def get_provider_appointments_for_date(*, provider, target_date) -> QuerySet[Appointment]:
@@ -34,6 +36,7 @@ def get_provider_appointments_for_date(*, provider, target_date) -> QuerySet[App
         current_timezone,
     )
 
+
     return (
         Appointment.objects
         .filter(
@@ -47,6 +50,7 @@ def get_provider_appointments_for_date(*, provider, target_date) -> QuerySet[App
 
 
 
+
 def get_user_appointments(*, user) -> QuerySet[Appointment]:
     return (
         Appointment.objects.filter(customer=user)
@@ -57,9 +61,11 @@ def get_user_appointments(*, user) -> QuerySet[Appointment]:
             "provider",
             "provider__user",
             "offering",
+            "payment",
         )
         .order_by("-start_at")
     )
+
 
 
 def get_provider_appointments(*, provider, include_cancelled: bool = True) -> QuerySet[Appointment]:
@@ -72,9 +78,11 @@ def get_provider_appointments(*, provider, include_cancelled: bool = True) -> Qu
             "provider",
             "provider__user",
             "offering",
+            "payment",
         )
         .order_by("-start_at")
     )
+
 
     if not include_cancelled:
         queryset = queryset.exclude(
@@ -84,7 +92,9 @@ def get_provider_appointments(*, provider, include_cancelled: bool = True) -> Qu
             ]
         )
 
+
     return queryset
+
 
 
 def get_organization_appointments(
@@ -101,9 +111,11 @@ def get_organization_appointments(
             "provider",
             "provider__user",
             "offering",
+            "payment",
         )
         .order_by("-start_at")
     )
+
 
     if not include_cancelled:
         queryset = queryset.exclude(
@@ -112,5 +124,6 @@ def get_organization_appointments(
                 "cancelled_by_provider",
             ]
         )
+
 
     return queryset

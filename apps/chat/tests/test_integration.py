@@ -1,13 +1,13 @@
-from datetime import date, time, timedelta
+from datetime import time, timedelta
+
 import pytest
-from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 
 from apps.appointments.enums import AppointmentStatus
 from apps.appointments.services.appointment import create_appointment
 from apps.appointments.services.chat_lifecycle import complete_appointment_visit
 from apps.availability.tests.factories import WorkingHourFactory
-from apps.chat.enums import MessageType
 from apps.chat.services.messages import send_message
 from apps.offerings.enums import VisitMode
 from apps.offerings.tests.factories import OfferingFactory
@@ -35,18 +35,18 @@ class TestE2EScenariosV4:
         customer = UserFactory(role=UserRoles.CUSTOMER)
         provider = ProviderProfileFactory()
         offering = OfferingFactory(
-            provider=provider, 
-            organization=provider.organization, 
-            visit_mode=VisitMode.IN_PERSON, 
+            provider=provider,
+            organization=provider.organization,
+            visit_mode=VisitMode.IN_PERSON,
             duration_minutes=30
         )
-        
+
         target_date = timezone.localdate() + timedelta(days=1)
-        
+
         WorkingHourFactory(
-            provider=provider, 
-            weekday=target_date.weekday(), 
-            start_time=time(9, 0), 
+            provider=provider,
+            weekday=target_date.weekday(),
+            start_time=time(9, 0),
             end_time=time(12, 0)
         )
 
@@ -68,18 +68,18 @@ class TestE2EScenariosV4:
         provider_user = UserFactory(role=UserRoles.PROVIDER)
         provider = ProviderProfileFactory(user=provider_user)
         offering = OfferingFactory(
-            provider=provider, 
-            organization=provider.organization, 
-            visit_mode=VisitMode.ONLINE_CHAT, 
-            duration_minutes=30, 
+            provider=provider,
+            organization=provider.organization,
+            visit_mode=VisitMode.ONLINE_CHAT,
+            duration_minutes=30,
             requires_approval=False
         )
 
         target_date = timezone.localdate() + timedelta(days=1)
         WorkingHourFactory(
-            provider=provider, 
-            weekday=target_date.weekday(), 
-            start_time=time(9, 0), 
+            provider=provider,
+            weekday=target_date.weekday(),
+            start_time=time(9, 0),
             end_time=time(12, 0)
         )
 
@@ -124,18 +124,18 @@ class TestE2EScenariosV4:
         provider_user = UserFactory(role=UserRoles.PROVIDER)
         provider = ProviderProfileFactory(user=provider_user)
         offering = OfferingFactory(
-            provider=provider, 
-            organization=provider.organization, 
-            visit_mode=VisitMode.ONLINE_CHAT, 
-            duration_minutes=30, 
+            provider=provider,
+            organization=provider.organization,
+            visit_mode=VisitMode.ONLINE_CHAT,
+            duration_minutes=30,
             requires_approval=False
         )
 
         target_date = timezone.localdate() + timedelta(days=1)
         WorkingHourFactory(
-            provider=provider, 
-            weekday=target_date.weekday(), 
-            start_time=time(9, 0), 
+            provider=provider,
+            weekday=target_date.weekday(),
+            start_time=time(9, 0),
             end_time=time(12, 0)
         )
         start_at = make_aware_datetime(target_date, time(10, 0))

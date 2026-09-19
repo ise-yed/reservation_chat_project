@@ -1,8 +1,10 @@
+import io
+
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.exceptions import ValidationError
 from PIL import Image
-import io
+from rest_framework.exceptions import ValidationError
+
 from apps.chat.enums import MessageType
 from apps.chat.validators import validate_and_get_mime_type
 

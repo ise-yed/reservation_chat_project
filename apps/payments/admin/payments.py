@@ -1,84 +1,18 @@
 from django.contrib import admin
 
-from apps.payments.models import Payment, PaymentTransaction
-
-
-class PaymentTransactionInline(admin.TabularInline):
-    model = PaymentTransaction
-    extra = 0
-    readonly_fields = (
-        "id",
-        "transaction_type",
-        "amount",
-        "status",
-        "gateway_reference",
-        "message",
-        "raw_response",
-        "created_at",
-        "updated_at",
-    )
-    can_delete = False
+from apps.payments.enums import PaymentStatus
+from apps.payments.models import Payment
 
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "appointment",
-        "payer",
-        "organization",
-        "amount",
-        "currency",
-        "status",
-        "method",
-        "paid_at",
-        "created_at",
-    )
-    list_filter = (
-        "status",
-        "method",
-        "currency",
-        "organization",
-        "created_at",
-        "paid_at",
-    )
-    search_fields = (
-        "payer__email",
-        "payer__first_name",
-        "payer__last_name",
-        "organization__name",
-        "appointment__offering__title",
-        "gateway_reference",
-        "idempotency_key",
-    )
-    readonly_fields = (
-        "id",
-        "created_at",
-        "updated_at",
-        "paid_at",
-        "failed_at",
-        "cancelled_at",
-        "refunded_at",
-    )
-    inlines = [PaymentTransactionInline]
+    list_display = ("id", "appointment", "amount", "method", "status", "paid_at", "created_at")
+    list_filter = ("status", "method", "created_at")
+    search_fields = ("appointment__customer__email", "appointment__offering__title", "gateway_reference")
+    readonly_fields = ("id", "created_at", "updated_at", "paid_at")
+    actions = ["mark_refunded"]
 
-
-@admin.register(PaymentTransaction)
-class PaymentTransactionAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "payment",
-        "transaction_type",
-        "amount",
-        "status",
-        "gateway_reference",
-        "created_at",
-    )
-    list_filter = ("transaction_type", "status", "created_at")
-    search_fields = (
-        "payment__payer__email",
-        "payment__appointment__offering__title",
-        "gateway_reference",
-        "message",
-    )
-    readonly_fields = ("id", "created_at", "updated_at")
+    @admin.action(description="Mark selected paid payments as refunded")
+    def mark_refunded(self, request, queryset):
+        updated = queryset.filter(status=PaymentStatus.PAID).update(status=PaymentStatus.REFUNDED)
+        self.message_user(request, f"{updated} payment(s) marked as refunded.")

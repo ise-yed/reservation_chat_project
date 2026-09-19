@@ -1,21 +1,15 @@
 from .payments import (
-    AppointmentPaymentCreateView,
     MyPaymentListView,
-    OrganizationPaymentListView,
-    PaymentCancelView,
+    PaymentCallbackView,
     PaymentDetailView,
-    PaymentMarkFailedView,
     PaymentMarkPaidView,
-    PaymentRefundView,
+    PaymentPayView,
 )
 
 __all__ = [
-    "PaymentMarkPaidView",
-    "PaymentMarkFailedView",
-    "PaymentCancelView",
-    "PaymentRefundView",
-    "PaymentDetailView",
-    "OrganizationPaymentListView",
     "MyPaymentListView",
-    "AppointmentPaymentCreateView",
+    "PaymentDetailView",
+    "PaymentPayView",
+    "PaymentCallbackView",
+    "PaymentMarkPaidView",
 ]

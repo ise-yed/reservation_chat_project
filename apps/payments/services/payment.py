@@ -1,346 +1,110 @@
-import uuid
+from datetime import timedelta
 
-from django.db import IntegrityError, transaction
+from django.conf import settings
+from django.db import transaction
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from apps.appointments.enums import AppointmentStatus
 from apps.appointments.models import Appointment
-from apps.payments.enums import (
-    PaymentMethod,
-    PaymentStatus,
-    PaymentTransactionType,
-)
-from apps.payments.models import Payment, PaymentTransaction
-from apps.payments.permissions import (
-    can_create_payment_for_appointment,
-    can_manage_payment,
-)
-from apps.payments.services.helpers import (
-    validate_appointment_is_payable,
-    validate_payment_can_be_cancelled,
-    validate_payment_can_be_paid,
-    validate_payment_can_be_refunded,
-    validate_payment_can_fail,
-)
-from apps.payments.services.notification import (
-    publish_payment_failed_notification,
-    publish_payment_success_notification,
-    publish_refund_success_notification,
-)
+from apps.appointments.services import confirm_paid_appointment
+from apps.payments.enums import PaymentMethod, PaymentStatus
+from apps.payments.gateway import get_gateway
+from apps.payments.models import Payment
+from apps.payments.permissions import can_manage_payment
 
 
-def _build_idempotency_key(*, appointment_id, method: str) -> str:
-    """Build idempotency key for payment."""
-    return f"appointment:{appointment_id}:method:{method}"
+def build_callback_url(request, payment_id) -> str:
+    return request.build_absolute_uri(reverse("payments:callback", kwargs={"pk": payment_id}))
 
 
-def _create_payment_transaction(
-    *,
-    payment,
-    transaction_type,
-    amount,
-    status="success",
-    gateway_reference="",
-    message="",
-    raw_response=None,
-) -> PaymentTransaction:
-    """Create a payment transaction record."""
-    return PaymentTransaction.objects.create(
-        payment=payment,
-        transaction_type=transaction_type,
-        amount=amount,
-        status=status,
-        gateway_reference=gateway_reference,
-        message=message,
-        raw_response=raw_response or {},
-    )
+def _lock_appointment_and_payment(payment_id):
+    """
+    Always lock the appointment first, then the payment
+    (same order as the expiry task) to avoid deadlocks.
+    """
+    try:
+        appointment = (
+            Appointment.objects.select_for_update(of=("self",))
+            .select_related("organization", "branch", "customer", "provider__user", "offering")
+            .get(payment__id=payment_id)
+        )
+    except Appointment.DoesNotExist as exc:
+        raise Payment.DoesNotExist from exc
+    payment = Payment.objects.select_for_update().get(id=payment_id)
+    payment.appointment = appointment
+    return appointment, payment
 
 
 @transaction.atomic
-def initiate_appointment_payment(
-    *,
-    actor,
-    appointment_id,
-    method: str = PaymentMethod.MOCK,
-) -> Payment:
-    """Initiate a payment for an appointment."""
-    appointment = (
-        Appointment.objects.select_for_update(of=("self",))
-        .select_related(
-            "organization",
-            "customer",
-            "provider",
-            "provider__user",
-            "offering",
-        )
-        .get(id=appointment_id)
-    )
+def start_online_payment(*, payment_id, actor, callback_url: str):
+    """Create (or retry) a gateway payment. Returns (payment, pay_url)."""
+    appointment, payment = _lock_appointment_and_payment(payment_id)
 
-    if not can_create_payment_for_appointment(actor, appointment):
-        raise PermissionDenied("You are not allowed to create payment for this appointment.")
+    if appointment.customer_id != actor.id:
+        raise PermissionDenied("You are not allowed to pay for this appointment.")
+    if payment.method != PaymentMethod.ONLINE:
+        raise ValidationError("This payment is not an online payment.")
+    if payment.status not in (PaymentStatus.PENDING, PaymentStatus.FAILED):
+        raise ValidationError("This payment can no longer be started.")
+    if appointment.status != AppointmentStatus.PENDING:
+        raise ValidationError("This appointment is no longer waiting for payment.")
 
-    validate_appointment_is_payable(appointment=appointment)
+    minutes = getattr(settings, "PAYMENT_EXPIRE_MINUTES", 15)
+    if appointment.created_at < timezone.now() - timedelta(minutes=minutes):
+        raise ValidationError("The payment window has expired. Please book again.")
 
-    existing_payment = (
-        Payment.objects.filter(
-            appointment=appointment,
-            status__in=[
-                PaymentStatus.PENDING,
-                PaymentStatus.PAID,
-            ],
-        )
-        .order_by("-created_at")
-        .first()
-    )
-
-    if existing_payment:
-        return existing_payment
-
-    idempotency_key = _build_idempotency_key(
-        appointment_id=appointment.id,
-        method=method,
-    )
-
-    try:
-        payment = Payment.objects.create(
-            appointment=appointment,
-            organization=appointment.organization,
-            payer=appointment.customer,
-            amount=appointment.price,
-            currency="IRR",
-            status=PaymentStatus.PENDING,
-            method=method,
-            idempotency_key=idempotency_key,
-            created_by=actor,
-            data={
-                "appointment_id": str(appointment.id),
-                "offering_id": str(appointment.offering_id),
-            },
-        )
-    except IntegrityError as exc:
-        payment = Payment.objects.filter(idempotency_key=idempotency_key).first()
-        if payment:
-            return payment
-
-        raise ValidationError(
-            {"appointment_id": ["Could not create payment for this appointment."]}
-        ) from exc
-
-    _create_payment_transaction(
-        payment=payment,
-        transaction_type=PaymentTransactionType.INITIATED,
-        amount=payment.amount,
-        message="Payment initiated.",
-    )
+    authority, pay_url = get_gateway().start(payment=payment, callback_url=callback_url)
+    payment.gateway_reference = authority
+    payment.status = PaymentStatus.PENDING
+    payment.save(update_fields=["gateway_reference", "status", "updated_at"])
+    return payment, pay_url
 
 
+@transaction.atomic
+def verify_online_payment(*, payment_id, params: dict) -> Payment:
+    """Gateway callback. Verifies the payment and confirms the appointment."""
+    appointment, payment = _lock_appointment_and_payment(payment_id)
+
+    if payment.status == PaymentStatus.PAID:  # idempotent
+        return payment
+    if payment.method != PaymentMethod.ONLINE or payment.status != PaymentStatus.PENDING:
+        raise ValidationError("This payment is not waiting for verification.")
+
+    reference = None
+    # If the appointment expired/cancelled meanwhile we must not verify (gateways auto-reverse
+    # unverified payments), so the customer is not charged for a slot that is gone.
+    if appointment.status == AppointmentStatus.PENDING:
+        reference = get_gateway().verify(payment=payment, params=params)
+
+    if reference:
+        payment.status = PaymentStatus.PAID
+        payment.paid_at = timezone.now()
+        payment.gateway_reference = reference
+        payment.save(update_fields=["status", "paid_at", "gateway_reference", "updated_at"])
+        confirm_paid_appointment(appointment=appointment)
+    else:
+        payment.status = PaymentStatus.FAILED
+        payment.save(update_fields=["status", "updated_at"])
     return payment
 
 
 @transaction.atomic
-def mark_payment_as_paid(
-    *,
-    payment,
-    actor,
-    gateway_reference: str = "",
-    raw_response=None,
-) -> Payment:
-    """Mark a payment as paid."""
-    locked_payment = (
-        Payment.objects.select_for_update(of=("self",))
-        .select_related(
-            "appointment",
-            "appointment__customer",
-            "appointment__provider",
-            "appointment__provider__user",
-            "appointment__offering",
-            "organization",
-            "payer",
-        )
-        .get(id=payment.id)
-    )
+def mark_paid_in_person(*, payment_id, actor) -> Payment:
+    """Provider/staff confirms that the patient paid at the clinic."""
+    appointment, payment = _lock_appointment_and_payment(payment_id)
 
-    if not can_manage_payment(actor, locked_payment):
-        raise PermissionDenied("You are not allowed to mark this payment as paid.")
+    if not can_manage_payment(actor, payment):
+        raise PermissionDenied("You are not allowed to update this payment.")
+    if payment.method != PaymentMethod.IN_PERSON:
+        raise ValidationError("Only in-person payments can be marked as paid manually.")
+    if payment.status != PaymentStatus.PENDING:
+        raise ValidationError("This payment is not pending.")
+    if appointment.status not in (AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED):
+        raise ValidationError("The appointment must be confirmed first.")
 
-    validate_payment_can_be_paid(payment=locked_payment)
-
-    locked_payment.status = PaymentStatus.PAID
-    locked_payment.paid_at = timezone.now()
-    locked_payment.gateway_reference = gateway_reference or f"mock-{uuid.uuid4()}"
-    locked_payment.failure_reason = ""
-    locked_payment.save(
-        update_fields=[
-            "status",
-            "paid_at",
-            "gateway_reference",
-            "failure_reason",
-            "updated_at",
-        ]
-    )
-
-    _create_payment_transaction(
-        payment=locked_payment,
-        transaction_type=PaymentTransactionType.PAID,
-        amount=locked_payment.amount,
-        gateway_reference=locked_payment.gateway_reference,
-        message="Payment marked as paid.",
-        raw_response=raw_response,
-    )
-
-    publish_payment_success_notification(payment=locked_payment)
-
-
-    return locked_payment
-
-
-@transaction.atomic
-def mark_payment_as_failed(
-    *,
-    payment,
-    actor,
-    failure_reason: str = "",
-    gateway_reference: str = "",
-    raw_response=None,
-) -> Payment:
-    """Mark a payment as failed."""
-    locked_payment = (
-        Payment.objects.select_for_update(of=("self",))
-        .select_related(
-            "appointment",
-            "appointment__customer",
-            "appointment__provider",
-            "appointment__provider__user",
-            "appointment__offering",
-            "organization",
-            "payer",
-        )
-        .get(id=payment.id)
-    )
-
-    if not can_manage_payment(actor, locked_payment):
-        raise PermissionDenied("You are not allowed to mark this payment as failed.")
-
-    validate_payment_can_fail(payment=locked_payment)
-
-    locked_payment.status = PaymentStatus.FAILED
-    locked_payment.failed_at = timezone.now()
-    locked_payment.failure_reason = failure_reason.strip()
-    locked_payment.gateway_reference = gateway_reference
-    locked_payment.save(
-        update_fields=[
-            "status",
-            "failed_at",
-            "failure_reason",
-            "gateway_reference",
-            "updated_at",
-        ]
-    )
-
-    _create_payment_transaction(
-        payment=locked_payment,
-        transaction_type=PaymentTransactionType.FAILED,
-        amount=locked_payment.amount,
-        status="failed",
-        gateway_reference=gateway_reference,
-        message=locked_payment.failure_reason,
-        raw_response=raw_response,
-    )
-
-    publish_payment_failed_notification(payment=locked_payment)
-
-
-    return locked_payment
-
-
-@transaction.atomic
-def cancel_payment(
-    *,
-    payment,
-    actor,
-) -> Payment:
-    """Cancel a payment."""
-    locked_payment = (
-        Payment.objects.select_for_update(of=("self",))
-        .select_related(
-            "appointment",
-            "appointment__customer",
-            "appointment__provider",
-            "appointment__provider__user",
-            "appointment__offering",
-            "organization",
-            "payer",
-        )
-        .get(id=payment.id)
-    )
-
-    if locked_payment.payer_id != actor.id and not can_manage_payment(actor, locked_payment):
-        raise PermissionDenied("You are not allowed to cancel this payment.")
-
-    validate_payment_can_be_cancelled(payment=locked_payment)
-
-    locked_payment.status = PaymentStatus.CANCELLED
-    locked_payment.cancelled_at = timezone.now()
-    locked_payment.save(update_fields=["status", "cancelled_at", "updated_at"])
-
-    _create_payment_transaction(
-        payment=locked_payment,
-        transaction_type=PaymentTransactionType.CANCELLED,
-        amount=locked_payment.amount,
-        message="Payment cancelled.",
-    )
-
-
-    return locked_payment
-
-
-@transaction.atomic
-def refund_payment(
-    *,
-    payment,
-    actor,
-    refund_reason: str = "",
-) -> Payment:
-    """Refund a payment."""
-    locked_payment = (
-        Payment.objects.select_for_update(of=("self",))
-        .select_related(
-            "appointment",
-            "appointment__customer",
-            "appointment__provider",
-            "appointment__provider__user",
-            "appointment__offering",
-            "organization",
-            "payer",
-        )
-        .get(id=payment.id)
-    )
-
-    if not can_manage_payment(actor, locked_payment):
-        raise PermissionDenied("You are not allowed to refund this payment.")
-
-    validate_payment_can_be_refunded(payment=locked_payment)
-
-    locked_payment.status = PaymentStatus.REFUNDED
-    locked_payment.refunded_at = timezone.now()
-    locked_payment.refund_reason = refund_reason.strip()
-    locked_payment.save(
-        update_fields=[
-            "status",
-            "refunded_at",
-            "refund_reason",
-            "updated_at",
-        ]
-    )
-
-    _create_payment_transaction(
-        payment=locked_payment,
-        transaction_type=PaymentTransactionType.REFUNDED,
-        amount=locked_payment.amount,
-        message=locked_payment.refund_reason or "Payment refunded.",
-    )
-
-    publish_refund_success_notification(payment=locked_payment)
-
-
-    return locked_payment
+    payment.status = PaymentStatus.PAID
+    payment.paid_at = timezone.now()
+    payment.save(update_fields=["status", "paid_at", "updated_at"])
+    return payment

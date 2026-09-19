@@ -1,11 +1,3 @@
-from .payments import (
-    PaymentAdmin,
-    PaymentTransactionAdmin,
-    PaymentTransactionInline,
-)
+from .payments import PaymentAdmin
 
-__all__ = [
-    "PaymentAdmin",
-    "PaymentTransactionAdmin",
-    "PaymentTransactionInline",
-]
+__all__ = ["PaymentAdmin"]

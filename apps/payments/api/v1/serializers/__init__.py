@@ -1,21 +1,3 @@
-from .payments import (
-    AppointmentPaymentCreateSerializer,
-    PaymentAppointmentInlineSerializer,
-    PaymentMarkFailedSerializer,
-    PaymentMarkPaidSerializer,
-    PaymentOrganizationInlineSerializer,
-    PaymentReadSerializer,
-    PaymentRefundSerializer,
-    PaymentTransactionReadSerializer,
-)
+from .payments import PaymentReadSerializer
 
-__all__ = [
-    "PaymentOrganizationInlineSerializer",
-    "PaymentAppointmentInlineSerializer",
-    "PaymentMarkPaidSerializer",
-    "PaymentMarkFailedSerializer",
-    "PaymentRefundSerializer",
-    "AppointmentPaymentCreateSerializer",
-    "PaymentTransactionReadSerializer",
-    "PaymentReadSerializer",
-]
+__all__ = ["PaymentReadSerializer"]

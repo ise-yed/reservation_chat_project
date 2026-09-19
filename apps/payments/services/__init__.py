@@ -1,15 +1,13 @@
-from apps.payments.services.payment import (
-    cancel_payment,
-    initiate_appointment_payment,
-    mark_payment_as_failed,
-    mark_payment_as_paid,
-    refund_payment,
+from .payment import (
+    build_callback_url,
+    mark_paid_in_person,
+    start_online_payment,
+    verify_online_payment,
 )
 
 __all__ = [
-    "initiate_appointment_payment",
-    "mark_payment_as_paid",
-    "mark_payment_as_failed",
-    "cancel_payment",
-    "refund_payment",
+    "build_callback_url",
+    "start_online_payment",
+    "verify_online_payment",
+    "mark_paid_in_person",
 ]
