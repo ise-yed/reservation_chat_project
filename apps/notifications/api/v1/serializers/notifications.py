@@ -21,3 +21,13 @@ class NotificationSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
+
+
+
+class FCMDeviceSerializer(serializers.ModelSerializer):
+    """Serializer for registering FCM devices."""
+
+    class Meta:
+        from apps.notifications.models import FCMDevice
+        model = FCMDevice
+        fields = ("registration_id", "device_type")

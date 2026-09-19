@@ -357,3 +357,35 @@ class TestNotificationSerializers:
         ]
         for field in expected_fields:
             assert field in response.data
+
+
+
+class TestFCMDeviceRegisterView:
+    """Tests for FCMDeviceRegisterView."""
+
+    def test_register_device_success(self):
+        user = UserFactory()
+        client = APIClient()
+        client.force_authenticate(user=user)
+        url = reverse("notifications:device-register")
+
+        payload = {
+            "registration_id": "test_fcm_token_12345",
+            "device_type": "android"
+        }
+
+        response = client.post(url, data=payload)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "Device registered"
+
+        from apps.notifications.models import FCMDevice
+        assert FCMDevice.objects.filter(user=user, registration_id="test_fcm_token_12345").exists()
+
+    def test_register_device_unauthenticated(self):
+        client = APIClient()
+        url = reverse("notifications:device-register")
+
+        response = client.post(url, data={"registration_id": "token"})
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

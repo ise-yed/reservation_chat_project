@@ -1,4 +1,5 @@
 from .notifications import (
+    FCMDeviceRegisterView,
     NotificationDetailView,
     NotificationListView,
     NotificationMarkAllAsReadView,
@@ -10,4 +11,5 @@ __all__ = [
     "NotificationDetailView",
     "NotificationMarkAsReadView",
     "NotificationMarkAllAsReadView",
+    "FCMDeviceRegisterView"
 ]

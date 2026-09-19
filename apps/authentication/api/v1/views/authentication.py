@@ -42,7 +42,7 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "register"
-    
+
     @register_schema
     def post(self, request):
         serializer = RegisterSerializer(data=request.data, context={"request": request})
@@ -183,7 +183,7 @@ class PasswordChangeRequestView(APIView):
         serializer.is_valid(raise_exception=True)
 
         error_msg = request_password_change_otp(user=request.user)
-        
+
         if error_msg:
             return Response({"message": error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 

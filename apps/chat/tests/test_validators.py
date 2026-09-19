@@ -1,7 +1,8 @@
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.exceptions import ValidationError
-
+from PIL import Image
+import io
 from apps.chat.enums import MessageType
 from apps.chat.validators import validate_and_get_mime_type
 
@@ -9,7 +10,13 @@ from apps.chat.validators import validate_and_get_mime_type
 VALID_JPEG_BYTES = b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00\x60\x00\x60\x00\x00"
 VALID_PDF_BYTES = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n"
 MALICIOUS_EXE_BYTES = b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xFF\xFF\x00\x00\xb8\x00\x00\x00"
+img_io = io.BytesIO()
+Image.new('RGB', (1, 1), color='red').save(img_io, format='JPEG')
+VALID_JPEG_BYTES = img_io.getvalue()
 
+# بایت‌های واقعی PDF و فایل اجرایی مخرب
+VALID_PDF_BYTES = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n"
+MALICIOUS_EXE_BYTES = b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xFF\xFF\x00\x00\xb8\x00\x00\x00"
 
 class TestFileValidators:
     def test_valid_image_passes(self):

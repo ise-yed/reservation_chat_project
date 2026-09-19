@@ -1,15 +1,16 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+
 from apps.chat.api.v1.serializers.chat import MessageReadSerializer
 
 
 def broadcast_new_message(*, message):
     """Broadcasts a newly created message to the conversation group."""
     channel_layer = get_channel_layer()
-    
+
     # استفاده از سریالایزر اصلی برای اطمینان از یکسانی ساختار داده با REST API
     message_data = MessageReadSerializer(message).data
-    
+
     async_to_sync(channel_layer.group_send)(
         f"conversation_{message.conversation_id}",
         {
@@ -23,9 +24,9 @@ def broadcast_new_message(*, message):
 def broadcast_message_deleted(*, message):
     """Broadcasts that a message was soft-deleted by the doctor (Tombstone)."""
     channel_layer = get_channel_layer()
-    
+
     message_data = MessageReadSerializer(message).data
-    
+
     async_to_sync(channel_layer.group_send)(
         f"conversation_{message.conversation_id}",
         {

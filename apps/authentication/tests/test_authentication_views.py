@@ -192,9 +192,9 @@ class TestAuthenticationFlow:
         register_payload = {"email": "flow@example.com", "password": "FlowPass123!", "password_confirm": "FlowPass123!"}
         reg_response = client.post(reverse("authentication:register"), register_payload, format="json")
         assert reg_response.status_code == status.HTTP_201_CREATED
-        
+
         # 2. Login
-        client.credentials() 
+        client.credentials()
         login_payload = {"email": "flow@example.com", "password": "FlowPass123!"}
         login_response = client.post(reverse("authentication:login"), login_payload, format="json")
         assert login_response.status_code == status.HTTP_200_OK

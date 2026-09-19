@@ -40,3 +40,5 @@ update_read_pointer_schema = extend_schema(
     responses={200: OpenApiResponse(description="Pointer updated successfully.")},
     tags=["Chat"]
 )
+
+

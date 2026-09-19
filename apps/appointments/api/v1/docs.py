@@ -106,7 +106,7 @@ appointment_status_schema = extend_schema(
         404: OpenApiResponse(description="Appointment not found."),
     },
     tags=["Appointments"],
-    
+
 )
 
 

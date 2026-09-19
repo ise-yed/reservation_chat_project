@@ -1,8 +1,8 @@
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema_view
 from rest_framework import generics, parsers, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema_view
 
 from apps.chat.api.v1.docs import (
     conversation_detail_schema,
@@ -107,12 +107,13 @@ class UpdateReadPointerView(APIView):
         conversation = get_conversation_or_raise(conversation_id, request.user)
         serializer = ReadPointerUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         last_read_message = get_object_or_404(Message, id=serializer.validated_data["last_read_message_id"])
-        
+
         update_read_pointer(
-            conversation=conversation, 
-            user=request.user, 
+            conversation=conversation,
+            user=request.user,
             last_read_message=last_read_message
         )
         return Response({"status": "success"}, status=status.HTTP_200_OK)
+

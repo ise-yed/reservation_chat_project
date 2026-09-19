@@ -186,7 +186,7 @@ def test_appointment_requires_pending_status_creates_conversation_on_confirm():
         actor=provider_user,
         status=AppointmentStatus.CONFIRMED,
     )
-    
+
     assert updated.status == AppointmentStatus.CONFIRMED
     assert updated.conversation is not None  # پس از تایید ساخته شد
 
@@ -471,7 +471,7 @@ def test_update_appointment_status_publishes_status_notification(mock_publish):
 def test_appointment_creates_snapshot_of_visit_mode():
     customer = UserFactory(role=UserRoles.CUSTOMER)
     provider = ProviderProfileFactory()
-    
+
     offering = OfferingFactory(
         provider=provider,
         organization=provider.organization,
@@ -500,7 +500,7 @@ def test_appointment_creates_snapshot_of_visit_mode():
 def test_appointment_visit_mode_snapshot_is_immutable_when_offering_changes():
     customer = UserFactory(role=UserRoles.CUSTOMER)
     provider = ProviderProfileFactory()
-    
+
     offering = OfferingFactory(
         provider=provider,
         organization=provider.organization,

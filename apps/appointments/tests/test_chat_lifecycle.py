@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -15,7 +16,6 @@ from apps.appointments.tests.factories import AppointmentFactory
 from apps.chat.tests.factories import ConversationFactory
 from apps.offerings.enums import VisitMode
 from apps.providers.tests.factories import ProviderProfileFactory
-from apps.users.enums import UserRoles
 from apps.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -26,7 +26,7 @@ def lifecycle_setup():
     conversation = ConversationFactory()
     provider_profile = ProviderProfileFactory(user=conversation.provider)
     now = timezone.now().replace(microsecond=0)
-    
+
     return {
         "conversation": conversation,
         "customer": conversation.customer,
@@ -56,7 +56,7 @@ class TestChatAccessStatusSelector:
         setup = lifecycle_setup
         start_at = setup["start_at"] + timedelta(minutes=time_shift)
         end_at = setup["end_at"] + timedelta(minutes=time_shift)
-        
+
         appointment = AppointmentFactory(
             customer=setup["customer"],
             provider=setup["provider_profile"],
@@ -85,7 +85,7 @@ class TestChatAccessStatusSelector:
             blocked_start_at=setup["start_at"],
             blocked_end_at=setup["end_at"],
         )
-        
+
         response = get_chat_access_status(appointment=appointment, user=setup["stranger"])
         assert response["reason"] == "not_participant"
         assert response["conversation_id"] is None
@@ -116,7 +116,7 @@ class TestCompleteAppointmentVisitService:
         appointment = AppointmentFactory(
             customer=setup["customer"],
             provider=setup["provider_profile"],
-            visit_mode=VisitMode.IN_PERSON, 
+            visit_mode=VisitMode.IN_PERSON,
             status=AppointmentStatus.CONFIRMED,
             start_at=setup["start_at"],
             end_at=setup["end_at"],
@@ -146,10 +146,10 @@ class TestCompleteAppointmentVisitService:
 
     def test_validation_errors(self, lifecycle_setup):
         setup = lifecycle_setup
-        
+
         # Test Not Online
         app_in_person = AppointmentFactory(
-            provider=setup["provider_profile"], 
+            provider=setup["provider_profile"],
             visit_mode=VisitMode.IN_PERSON,
             start_at=setup["start_at"],
             end_at=setup["end_at"],
@@ -158,11 +158,11 @@ class TestCompleteAppointmentVisitService:
         )
         with pytest.raises(ValidationError, match="Only online"):
             complete_appointment_visit(appointment=app_in_person, actor=setup["provider"])
-            
+
         # Test Not Confirmed
         app_pending = AppointmentFactory(
-            provider=setup["provider_profile"], 
-            visit_mode=VisitMode.ONLINE_CHAT, 
+            provider=setup["provider_profile"],
+            visit_mode=VisitMode.ONLINE_CHAT,
             status=AppointmentStatus.PENDING,
             start_at=setup["start_at"],
             end_at=setup["end_at"],
@@ -187,10 +187,10 @@ class TestChatActionsAPI:
         )
         client = APIClient()
         client.force_authenticate(user=setup["stranger"])
-        
+
         url = reverse("appointments:appointment-chat-access", kwargs={"appointment_id": appointment.id})
         response = client.get(url)
-        
+
         # غریبه باید خطای 404 بگیرد تا وجود نوبت فاش نشود
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -207,10 +207,10 @@ class TestChatActionsAPI:
         )
         client = APIClient()
         client.force_authenticate(user=setup["customer"])
-        
+
         url = reverse("appointments:appointment-chat-access", kwargs={"appointment_id": appointment.id})
         response = client.get(url)
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert "reason" in response.data
 
@@ -227,8 +227,8 @@ class TestChatActionsAPI:
         )
         client = APIClient()
         client.force_authenticate(user=setup["stranger"])
-        
+
         url = reverse("appointments:appointment-complete", kwargs={"appointment_id": appointment.id})
         response = client.post(url)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN

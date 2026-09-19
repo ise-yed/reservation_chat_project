@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.notifications.api.v1.docs import (
+    fcm_device_register_schema,
     notification_detail_schema,
     notification_list_schema,
     notification_mark_all_as_read_schema,
     notification_mark_as_read_schema,
 )
-from apps.notifications.api.v1.serializers import NotificationSerializer
+from apps.notifications.api.v1.serializers import FCMDeviceSerializer, NotificationSerializer
 from apps.notifications.models import Notification
 from apps.notifications.selectors import (
     get_user_notification_by_id,
@@ -89,3 +90,25 @@ class NotificationMarkAllAsReadView(APIView):
             {"marked_as_read": updated_count},
             status=status.HTTP_200_OK,
         )
+
+@fcm_device_register_schema
+class FCMDeviceRegisterView(APIView):
+    """Register or update a user's device for Push Notifications."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = FCMDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        from apps.notifications.models import FCMDevice
+
+        FCMDevice.objects.update_or_create(
+            registration_id=serializer.validated_data["registration_id"],
+            defaults={
+                "user": request.user,
+                "device_type": serializer.validated_data.get("device_type", "android"),
+                "is_active": True
+            }
+        )
+        return Response({"status": "Device registered"}, status=status.HTTP_200_OK)

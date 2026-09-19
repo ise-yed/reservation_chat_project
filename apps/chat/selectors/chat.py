@@ -13,9 +13,9 @@ def get_user_conversations(user):
     return Conversation.objects.filter(
         Q(customer=user) | Q(provider=user)
     ).select_related(
-        "customer", 
-        "provider", 
-        "last_message", 
+        "customer",
+        "provider",
+        "last_message",
         "last_message__sender"
     ).order_by("-updated_at")
 
@@ -33,7 +33,7 @@ def get_conversation_or_raise(conversation_id, user) -> Conversation:
 
     if conversation.customer != user and conversation.provider != user:
         raise PermissionDenied("You are not a participant in this conversation.")
-        
+
     return conversation
 
 

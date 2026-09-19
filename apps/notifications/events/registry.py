@@ -195,6 +195,15 @@ NOTIFICATION_EVENT_REGISTRY: dict[str, NotificationEventConfig] = {
             "Appointment time: {appointment_start_at_display}\n"
         ),
     ),
+    NotificationEvent.CHAT_MESSAGE_RECEIVED: NotificationEventConfig(
+        notification_type=NotificationType.CHAT_MESSAGE_RECEIVED,
+        channels=(
+            # NotificationChannel.IN_APP,
+            NotificationChannel.PUSH,
+        ),
+        title="  New Message from {sender_display_name}",
+        message="{message_preview}",
+    ),
 }
 
 

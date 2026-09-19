@@ -1,11 +1,11 @@
 from django.http import Http404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django_filters.rest_framework import DjangoFilterBackend
-from apps.appointments.api.v1.filters import AppointmentFilter
+
 from apps.appointments.api.v1.docs import (
     appointment_cancel_schema,
     appointment_detail_schema,
@@ -15,6 +15,7 @@ from apps.appointments.api.v1.docs import (
     organization_appointments_schema,
     provider_appointments_schema,
 )
+from apps.appointments.api.v1.filters import AppointmentFilter
 from apps.appointments.api.v1.serializers import (
     AppointmentCancelSerializer,
     AppointmentCreateSerializer,

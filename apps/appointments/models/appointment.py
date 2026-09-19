@@ -34,7 +34,7 @@ class Appointment(BaseModel):
         on_delete=models.PROTECT,
         related_name="appointments",
     )
-    
+
     conversation = models.ForeignKey(
         "chat.Conversation",
         on_delete=models.PROTECT,
@@ -67,7 +67,7 @@ class Appointment(BaseModel):
 
     # تکمیل و لغو
     completed_at = models.DateTimeField(null=True, blank=True)
-    
+
     cancel_reason = models.TextField(blank=True)
     cancelled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

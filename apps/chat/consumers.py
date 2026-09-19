@@ -1,25 +1,26 @@
+import asyncio
 import json
 import time
-import asyncio
+
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from apps.chat.selectors.chat import get_conversation_or_raise
-from apps.chat.services.permissions import can_send_message
-from apps.chat.services.messages import update_read_pointer
 from apps.chat.models import Message
+from apps.chat.selectors.chat import get_conversation_or_raise
+from apps.chat.services.messages import update_read_pointer
+from apps.chat.services.permissions import can_send_message
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope.get("user")
-        
+
         if not self.user or self.user.is_anonymous:
             await self.close(code=4001)
             return
 
         self.conversation_id = self.scope["url_route"]["kwargs"]["conversation_id"]
-        
+
         try:
             self.conversation = await self._get_conversation()
         except Exception:
@@ -40,7 +41,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # توقف تایمر در صورت قطع شدن زودترِ کاربر
         if hasattr(self, "expiration_task"):
             self.expiration_task.cancel()
-            
+
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -48,7 +49,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """پس از پایان زمان اعتبار توکن، رویداد auth.expired می‌فرستد و قطع می‌کند"""
         now = time.time()
         sleep_time = exp_timestamp - now
-        
+
         if sleep_time > 0:
             await asyncio.sleep(sleep_time)
 
@@ -125,7 +126,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             msg = Message.objects.get(id=message_id)
             update_read_pointer(conversation=self.conversation, user=self.user, last_read_message=msg)
-            
+
             from apps.chat.services.realtime import broadcast_read_receipt
             broadcast_read_receipt(
                 conversation_id=self.conversation.id,

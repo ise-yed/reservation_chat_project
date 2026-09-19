@@ -11,7 +11,7 @@ class NotificationEvent:
     APPOINTMENT_COMPLETED = "appointments.appointment_completed"
     APPOINTMENT_NO_SHOW = "appointments.appointment_no_show"
     APPOINTMENT_REMINDER = "appointments.appointment_reminder"
-
+    CHAT_MESSAGE_RECEIVED = "chat.message_received"
     PAYMENT_SUCCESS = "payments.payment_success"
     PAYMENT_FAILED = "payments.payment_failed"
     REFUND_SUCCESS = "payments.refund_success"
@@ -19,6 +19,7 @@ class NotificationEvent:
     @classmethod
     def choices(cls):
         return (
+            (cls.CHAT_MESSAGE_RECEIVED, _("Chat message received")),
             (cls.PASSWORD_CHANGED, _("Password changed")),
             (cls.PASSWORD_RESET_REQUESTED, _("Password reset requested")),
             (cls.APPOINTMENT_CREATED, _("Appointment created")),

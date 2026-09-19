@@ -61,13 +61,13 @@ class OTPService:
 
         cache.delete(key)
         code = OTPService.generate_code()
-        
+
         data = {
             "code_hash": OTPService._hash_code(code),
             "attempts": 0,
             "created_at": timezone.now().isoformat(),
         }
-        
+
         cache.set(key, data, timeout=OTPService.OTP_EXPIRE_SECONDS)
         return code, None
 
@@ -85,16 +85,16 @@ class OTPService:
 
         stored_hash = data.get("code_hash")
         provided_hash = OTPService._hash_code(code)
-        
+
         if not OTPService._secure_compare(provided_hash, stored_hash):
             data["attempts"] += 1
             remaining = OTPService.MAX_ATTEMPTS - data["attempts"]
-            
+
             # پاک کردن فوری کلید در صورت اتمام دفعات مجاز
             if remaining <= 0:
                 cache.delete(key)
                 return False, "Too many failed attempts. Please request a new OTP."
-            
+
             cache.set(key, data, timeout=OTPService.OTP_EXPIRE_SECONDS)
             return False, f"Invalid code. {remaining} attempts remaining."
 

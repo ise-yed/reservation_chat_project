@@ -81,7 +81,7 @@ class TestLogoutUser:
     def test_logout_user_success(self):
         user = UserFactory()
         refresh = RefreshToken.for_user(user)
-        
+
         # Should execute without throwing errors and blacklist the token
         logout_user(str(refresh))
 
@@ -97,7 +97,7 @@ class TestPasswordResetServices:
         mock_create.return_value = ("123456", None)
 
         error = request_password_reset_otp(email=user.email)
-        
+
         assert error is None
         mock_create.assert_called_once_with(user.id, user.email, purpose="password_reset")
         mock_send.assert_called_once_with(user, "123456", purpose_text="Password Reset")
@@ -156,7 +156,7 @@ class TestPasswordChangeServices:
         mock_create.return_value = ("654321", None)
 
         error = request_password_change_otp(user=user)
-        
+
         assert error is None
         mock_create.assert_called_once_with(user.id, user.email, purpose="password_change")
         mock_send.assert_called_once_with(user, "654321", purpose_text="Password Change")

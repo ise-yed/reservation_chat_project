@@ -15,34 +15,34 @@ def message_attachment_upload_to(instance, filename):
 
 class Message(BaseModel):
     conversation = models.ForeignKey(
-        "chat.Conversation", 
-        on_delete=models.CASCADE, 
+        "chat.Conversation",
+        on_delete=models.CASCADE,
         related_name="messages"
     )
     sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name="sent_messages"
     )
     type = models.CharField(
-        max_length=10, 
-        choices=MessageType.choices, 
+        max_length=10,
+        choices=MessageType.choices,
         default=MessageType.TEXT
     )
     content = models.TextField(blank=True)
-    
+
     attachment = models.FileField(upload_to=message_attachment_upload_to, blank=True, null=True)
     file_name = models.CharField(max_length=255, blank=True)
     file_size = models.PositiveBigIntegerField(null=True, blank=True)
     mime_type = models.CharField(max_length=150, blank=True)
-    
+
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="+"
     )
 

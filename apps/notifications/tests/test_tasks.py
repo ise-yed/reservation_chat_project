@@ -99,7 +99,7 @@ class TestSendNotificationDeliveryTask:
         user = UserFactory()
         delivery = NotificationDelivery.objects.create(
             user=user,
-            channel=NotificationChannel.PUSH,
+            channel=NotificationChannel.SMS,
             type=NotificationType.PASSWORD_CHANGED,
             recipient="device_token",
             status=NotificationDeliveryStatus.PENDING,

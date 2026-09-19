@@ -16,7 +16,7 @@ class NotificationType(models.TextChoices):
     PAYMENT_SUCCESS = "payment_success", "Payment Success"
     PAYMENT_FAILED = "payment_failed", "Payment Failed"
     REFUND_SUCCESS = "refund_success", "Refund Success"
-
+    CHAT_MESSAGE_RECEIVED = "chat_message_received", "Chat Message Received"
 
 class NotificationChannel(models.TextChoices):
     IN_APP = "in_app", "In App"

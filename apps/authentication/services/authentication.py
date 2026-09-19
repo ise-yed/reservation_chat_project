@@ -39,7 +39,7 @@ def logout_user(refresh_token: str):
 def request_password_reset_otp(*, email: str):
     """Generate and send OTP for password reset if user exists."""
     user = User.objects.filter(email__iexact=email, is_active=True).first()
-    
+
     # We silently ignore non-existent emails to prevent user enumeration
     if user:
         code, error_msg = OTPService.create_otp(user.id, user.email, purpose="password_reset")

@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.appointments.api.v1.views.chat_actions import AppointmentChatAccessView, AppointmentCompleteView
+
 from apps.appointments.api.v1.views import (
     AppointmentCancelView,
     AppointmentDetailView,
@@ -8,6 +8,10 @@ from apps.appointments.api.v1.views import (
     MyAppointmentListView,
     OrganizationAppointmentListView,
     ProviderAppointmentListView,
+)
+from apps.appointments.api.v1.views.chat_actions import (
+    AppointmentChatAccessView,
+    AppointmentCompleteView,
 )
 
 app_name = "appointments"

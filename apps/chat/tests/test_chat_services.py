@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 import pytest
 from django.core.exceptions import PermissionDenied
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -68,7 +69,7 @@ class TestSendMessageService:
             setup = service_setup
             valid_pdf_bytes = b"%PDF-1.4\n%\xE2\xE3\xCF\xD3\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n"
             dummy_file = SimpleUploadedFile("test.pdf", valid_pdf_bytes, content_type="application/pdf")
-            
+
             msg = send_message(
                 conversation=setup["conversation"],
                 sender=setup["provider"],
@@ -111,7 +112,7 @@ class TestDeleteMessageService:
     def test_delete_by_doctor_success(self, service_setup):
         msg = MessageFactory(conversation=service_setup["conversation"])
         deleted_msg = delete_message(message=msg, actor=service_setup["provider"])
-        
+
         assert deleted_msg.is_deleted is True
         assert deleted_msg.deleted_by == service_setup["provider"]
         assert deleted_msg.deleted_at is not None
@@ -131,10 +132,10 @@ class TestUpdateReadPointerService:
     def test_update_read_pointer_success(self, service_setup):
         setup = service_setup
         msg = MessageFactory(conversation=setup["conversation"])
-        
+
         update_read_pointer(
-            conversation=setup["conversation"], 
-            user=setup["customer"], 
+            conversation=setup["conversation"],
+            user=setup["customer"],
             last_read_message=msg
         )
         setup["conversation"].refresh_from_db()
@@ -143,10 +144,10 @@ class TestUpdateReadPointerService:
     def test_update_read_pointer_wrong_conversation(self, service_setup):
         other_conv = ConversationFactory()
         msg_other = MessageFactory(conversation=other_conv)
-        
+
         with pytest.raises(ValidationError, match="does not belong"):
             update_read_pointer(
-                conversation=service_setup["conversation"], 
-                user=service_setup["customer"], 
+                conversation=service_setup["conversation"],
+                user=service_setup["customer"],
                 last_read_message=msg_other
             )

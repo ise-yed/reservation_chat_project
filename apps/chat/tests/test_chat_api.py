@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -49,10 +50,10 @@ class TestChatAPI:
         """GET /api/v1/chat/conversations/"""
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
-        
+
         url = reverse("chat:conversation-list")
         response = client.get(url)
-        
+
         assert response.status_code == status.HTTP_200_OK
         # به دلیل اینکه از Pagination عمومی استفاده کردیم، داده‌ها داخل results هستند
         assert len(response.data["results"]) == 1
@@ -61,13 +62,13 @@ class TestChatAPI:
     def test_get_message_history_with_cursor(self, api_setup):
         """GET /api/v1/chat/conversations/{id}/messages/"""
         MessageFactory(conversation=api_setup["conversation"], content="Hello Doctor")
-        
+
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
-        
+
         url = reverse("chat:message-list-create", kwargs={"conversation_id": api_setup["conversation"].id})
         response = client.get(url)
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert "next" in response.data
         assert "previous" in response.data
@@ -78,11 +79,11 @@ class TestChatAPI:
         """POST /api/v1/chat/conversations/{id}/messages/"""
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
-        
+
         url = reverse("chat:message-list-create", kwargs={"conversation_id": api_setup["conversation"].id})
         payload = {"type": MessageType.TEXT, "content": "I have a headache"}
         response = client.post(url, data=payload, format="json")
-        
+
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["content"] == "I have a headache"
 
@@ -92,11 +93,11 @@ class TestChatAPI:
         conv = ConversationFactory()
         client = APIClient()
         client.force_authenticate(user=conv.customer)
-        
+
         url = reverse("chat:message-list-create", kwargs={"conversation_id": conv.id})
         payload = {"type": MessageType.TEXT, "content": "Hello?"}
         response = client.post(url, data=payload, format="json")
-        
+
         # باید خطای 403 (مجوز رد شد) بگیرد
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -105,10 +106,10 @@ class TestChatAPI:
         msg = MessageFactory(conversation=api_setup["conversation"])
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["provider"])
-        
+
         url = reverse("chat:message-detail", kwargs={"message_id": msg.id})
         response = client.delete(url)
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
         msg.refresh_from_db()
         assert msg.is_deleted is True
@@ -118,10 +119,10 @@ class TestChatAPI:
         msg = MessageFactory(conversation=api_setup["conversation"])
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
-        
+
         url = reverse("chat:message-detail", kwargs={"message_id": msg.id})
         response = client.delete(url)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_tombstone_masks_deleted_content(self, api_setup):
@@ -132,15 +133,15 @@ class TestChatAPI:
             is_deleted=True,
             deleted_at=timezone.now()
         )
-        
+
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
         url = reverse("chat:message-list-create", kwargs={"conversation_id": api_setup["conversation"].id})
         response = client.get(url)
-        
+
         assert response.status_code == status.HTTP_200_OK
         msg_data = response.data["results"][0]
-        
+
         assert msg_data["is_deleted"] is True
         assert msg_data["content"] == ""  # متن کاملاً سانسور شده است
         assert "SECRET PATIENT DATA" not in str(response.data)
@@ -150,15 +151,15 @@ class TestChatAPI:
         msg = MessageFactory(conversation=api_setup["conversation"])
         client = api_setup["client"]
         client.force_authenticate(user=api_setup["customer"])
-        
+
         url = reverse("chat:update-read-pointer", kwargs={"conversation_id": api_setup["conversation"].id})
         response = client.post(url, data={"last_read_message_id": str(msg.id)}, format="json")
-        
+
         assert response.status_code == status.HTTP_200_OK
         api_setup["conversation"].refresh_from_db()
         assert api_setup["conversation"].patient_last_read_message == msg
-        
-        
+
+
     def test_unread_count_logic(self, api_setup):
         """تست محاسبه دقیق unread_count قبل و بعد از آپدیت Read Pointer"""
         conv = api_setup["conversation"]
@@ -182,12 +183,12 @@ class TestChatAPI:
 
         # ۲. بیمار فقط تا پیام دوم را می‌خواند
         client.post(read_url, data={"last_read_message_id": str(msg2.id)}, format="json")
-        
+
         response = client.get(list_url)
         assert response.data["results"][0]["unread_count"] == 1  # فقط msg3 خوانده نشده است
 
         # ۳. بیمار آخرین پیام را هم می‌خواند
         client.post(read_url, data={"last_read_message_id": str(msg3.id)}, format="json")
-        
+
         response = client.get(list_url)
         assert response.data["results"][0]["unread_count"] == 0  # همه خوانده شدند

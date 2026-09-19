@@ -13,14 +13,14 @@ def can_send_message(*, conversation, user) -> bool:
     # 1. پزشکِ همان مکالمه همیشه مجاز است
     if user == conversation.provider:
         return True
-        
+
     # 2. شخص ثالث (کسی که نه بیمار است نه پزشک) همیشه ممنوع است
     if user != conversation.customer:
         return False
 
     # 3. بررسی مجوز بیمار (فقط در بازه نوبت آنلاین تایید شده مجاز است)
     now = timezone.now()
-    
+
     has_active_appointment = Appointment.objects.filter(
         customer=user,
         provider__user=conversation.provider,

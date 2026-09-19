@@ -50,7 +50,7 @@ class ConversationReadSerializer(serializers.ModelSerializer):
     provider = UserReadSerializer(read_only=True)
     last_message = MessageReadSerializer(read_only=True)
     unread_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Conversation
         fields = (
@@ -69,7 +69,7 @@ class ConversationReadSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user:
             return 0
-            
+
         user = request.user
         if user == obj.customer:
             last_read = obj.patient_last_read_message
@@ -77,12 +77,12 @@ class ConversationReadSerializer(serializers.ModelSerializer):
             last_read = obj.doctor_last_read_message
         else:
             return 0
-            
+
         # محاسبه تعداد پیام‌های خوانده‌نشده
         qs = Message.objects.filter(conversation=obj, is_deleted=False)
         if last_read:
             qs = qs.filter(created_at__gt=last_read.created_at)
-            
+
         return qs.count()
 
 

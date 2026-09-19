@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 import pytest
 from django.utils import timezone
 
@@ -18,7 +19,7 @@ def chat_setup():
     """Setup base entities for permission matrix testing."""
     conversation = ConversationFactory()
     provider_profile = ProviderProfileFactory(user=conversation.provider)
-    
+
     return {
         "conversation": conversation,
         "customer": conversation.customer,
@@ -44,11 +45,11 @@ class TestChatPermissionMatrix:
     def test_patient_time_boundaries(self, chat_setup, time_offset, expected):
         setup = chat_setup
         now = timezone.now()
-        
+
         # حرکت دادن زمان نوبت به جای متوقف کردن زمان پایتون (ضدگلوله برای دیتابیس)
         start_at = now - timedelta(minutes=time_offset)
         end_at = start_at + timedelta(minutes=30)
-        
+
         AppointmentFactory(
             customer=setup["customer"],
             provider=setup["provider_profile"],
@@ -59,7 +60,7 @@ class TestChatPermissionMatrix:
             blocked_start_at=start_at,
             blocked_end_at=end_at,
         )
-        
+
         result = can_send_message(conversation=setup["conversation"], user=setup["customer"])
         assert result is expected
 
@@ -72,11 +73,11 @@ class TestChatPermissionMatrix:
     def test_patient_appointment_statuses(self, chat_setup, status, expected):
         setup = chat_setup
         now = timezone.now()
-        
+
         # تنظیم نوبت طوری که ۵ دقیقه از شروع آن گذشته باشد (در حالت فعال)
         start_at = now - timedelta(minutes=5)
         end_at = start_at + timedelta(minutes=30)
-        
+
         AppointmentFactory(
             customer=setup["customer"],
             provider=setup["provider_profile"],
@@ -87,7 +88,7 @@ class TestChatPermissionMatrix:
             blocked_start_at=start_at,
             blocked_end_at=end_at,
         )
-        
+
         result = can_send_message(conversation=setup["conversation"], user=setup["customer"])
         assert result is expected
 
@@ -95,10 +96,10 @@ class TestChatPermissionMatrix:
         """بیمار | نوبت حضوری | ممنوع"""
         setup = chat_setup
         now = timezone.now()
-        
+
         start_at = now - timedelta(minutes=5)
         end_at = start_at + timedelta(minutes=30)
-        
+
         AppointmentFactory(
             customer=setup["customer"],
             provider=setup["provider_profile"],
@@ -109,20 +110,20 @@ class TestChatPermissionMatrix:
             blocked_start_at=start_at,
             blocked_end_at=end_at,
         )
-        
+
         result = can_send_message(conversation=setup["conversation"], user=setup["customer"])
         assert result is False
 
     def test_doctor_can_send_anytime(self, chat_setup):
         """پزشک | هر زمان | مجاز"""
         setup = chat_setup
-        
+
         result = can_send_message(conversation=setup["conversation"], user=setup["provider"])
         assert result is True
 
     def test_third_party_is_forbidden(self, chat_setup):
         """شخص ثالث | هر زمان | ممنوع"""
         setup = chat_setup
-        
+
         result = can_send_message(conversation=setup["conversation"], user=setup["stranger"])
         assert result is False

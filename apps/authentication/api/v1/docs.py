@@ -12,7 +12,6 @@ from apps.authentication.api.v1.serializers import (
 )
 from apps.users.api.v1.serializers.users import UserReadSerializer, UserUpdateSerializer
 
-
 register_schema = extend_schema(
     summary="Register a new user",
     request=RegisterSerializer,

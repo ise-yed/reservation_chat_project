@@ -2,14 +2,11 @@ import pytest
 
 from apps.authentication.api.v1.serializers import (
     LoginSerializer,
-    LogoutSerializer,
     PasswordChangeConfirmSerializer,
-    PasswordChangeRequestSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
 )
-from apps.users.models import User, UserRoles
 from apps.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db

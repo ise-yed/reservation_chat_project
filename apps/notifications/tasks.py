@@ -2,6 +2,7 @@ from celery import shared_task
 from django.core.exceptions import ValidationError
 
 from apps.notifications.channels import EmailChannel
+from apps.notifications.channels.push import PushChannel
 from apps.notifications.enums import (
     NotificationChannel,
     NotificationDeliveryStatus,
@@ -35,6 +36,13 @@ def send_notification_delivery_task(self, delivery_id: str) -> None:
                 recipient=delivery.recipient,
                 subject=delivery.subject,
                 body=delivery.body,
+            )
+        elif delivery.channel == NotificationChannel.PUSH:
+            PushChannel().send(
+                recipient=delivery.recipient,
+                subject=delivery.subject,
+                body=delivery.body,
+                data=delivery.data
             )
         else:
             mark_delivery_as_failed(

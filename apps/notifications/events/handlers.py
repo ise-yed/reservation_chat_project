@@ -3,9 +3,14 @@ from typing import Any
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.core.validators import validate_email
 
-from apps.notifications.enums import NotificationChannel
+from apps.notifications.enums import NotificationChannel, NotificationDeliveryStatus
 from apps.notifications.events.registry import get_notification_event_config
-from apps.notifications.services import create_notification, send_email_notification
+from apps.notifications.models import NotificationDelivery
+from apps.notifications.services import (
+    create_notification,
+    enqueue_notification_delivery,
+    send_email_notification,
+)
 
 
 def handle_notification_event(
@@ -57,6 +62,21 @@ def handle_notification_event(
                 **context,
             },
         )
+
+    if NotificationChannel.PUSH in config.channels:
+
+        delivery = NotificationDelivery.objects.create(
+            notification=notification, # اگر IN_APP هم فعال بوده باشد، اینجا متصل می‌شود
+            user=recipient,
+            channel=NotificationChannel.PUSH,
+            type=config.notification_type,
+            recipient=str(recipient.pk),  # آیدی کاربر را به عنوان گیرنده ثبت می‌کنیم
+            subject=_render_text(config.title, context),
+            body=_render_text(config.message, context),
+            status=NotificationDeliveryStatus.PENDING,
+            data={"event_name": event_name, **context},
+        )
+        enqueue_notification_delivery(delivery=delivery)
 
 
 def _build_context(*, recipient, context: dict[str, Any] | None) -> dict[str, Any]:
