@@ -8,7 +8,6 @@ from apps.notifications.models import FCMDevice
 
 logger = logging.getLogger(__name__)
 
-# وقتی کلید فایربیس گرفتید این کدها را از کامنت در بیاورید:
 if not firebase_admin._apps:
     cred = firebase_admin.credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
     firebase_admin.initialize_app(cred)
