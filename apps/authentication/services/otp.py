@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +46,14 @@ class OTPService:
         rate_key = OTPService._get_rate_limit_key(email, purpose)
         attempts = cache.get(rate_key, 0)
         if attempts >= OTPService.EMAIL_RATE_LIMIT_COUNT:
-            return None, "Too many requests for this email. Please try again later."
+            return None, _("Too many requests for this email. Please try again later.")
 
         key = OTPService._get_key(user_id, purpose)
         existing_data = cache.get(key)
         if existing_data and "created_at" in existing_data:
             created_time = timezone.datetime.fromisoformat(existing_data["created_at"])
             if (timezone.now() - created_time).total_seconds() < OTPService.COOLDOWN_SECONDS:
-                return None, "Please wait 60 seconds before requesting a new code."
+                return None, _("Please wait 60 seconds before requesting a new code.")
 
         if attempts == 0:
             cache.set(rate_key, 1, timeout=OTPService.EMAIL_RATE_LIMIT_TIMEOUT)
@@ -77,11 +78,11 @@ class OTPService:
         data = cache.get(key)
 
         if not data:
-            return False, "OTP code has expired. Please request a new one."
+            return False, _("OTP code has expired. Please request a new one.")
 
         if data["attempts"] >= OTPService.MAX_ATTEMPTS:
             cache.delete(key)
-            return False, "Too many failed attempts. Please request a new OTP."
+            return False, _("Too many failed attempts. Please request a new OTP.")
 
         stored_hash = data.get("code_hash")
         provided_hash = OTPService._hash_code(code)
@@ -93,10 +94,10 @@ class OTPService:
             # پاک کردن فوری کلید در صورت اتمام دفعات مجاز
             if remaining <= 0:
                 cache.delete(key)
-                return False, "Too many failed attempts. Please request a new OTP."
+                return False, _("Too many failed attempts. Please request a new OTP.")
 
             cache.set(key, data, timeout=OTPService.OTP_EXPIRE_SECONDS)
-            return False, f"Invalid code. {remaining} attempts remaining."
+            return False, _("Invalid code. %(remaining)s attempts remaining.") % {"remaining": remaining}
 
         cache.delete(key)
         return True, None

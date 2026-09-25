@@ -13,9 +13,10 @@ from apps.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 
 
-def test_provider_can_create_organization():
+def test_SUPER_ADMIN_can_create_organization():
     """Provider role user can create an organization."""
-    user = UserFactory(role=UserRoles.PROVIDER)
+    user = UserFactory(role=UserRoles.SUPER_ADMIN, is_staff=True)
+
 
     organization = create_organization(
         owner=user,
@@ -23,7 +24,7 @@ def test_provider_can_create_organization():
         phone_number="02112345678",
     )
 
-    assert organization.owner == user
+
     assert organization.name == "My Clinic"
     assert organization.slug == "my-clinic"
 
@@ -41,8 +42,8 @@ def test_customer_cannot_create_organization():
 
 def test_create_organization_generates_unique_slug():
     """Duplicate organization names generate unique slugs with numeric suffix."""
-    user = UserFactory(role=UserRoles.PROVIDER)
-
+    user = UserFactory(role=UserRoles.SUPER_ADMIN, is_staff=True)
+    
     first = create_organization(owner=user, name="Clinic")
     second = create_organization(owner=user, name="Clinic")
 

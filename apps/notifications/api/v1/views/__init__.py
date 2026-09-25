@@ -5,11 +5,13 @@ from .notifications import (
     NotificationMarkAllAsReadView,
     NotificationMarkAsReadView,
 )
+from .admin_deliveries import AdminNotificationDeliveryListView
 
 __all__ = [
-    "NotificationListView",
+    "FCMDeviceRegisterView",
     "NotificationDetailView",
-    "NotificationMarkAsReadView",
+    "NotificationListView",
     "NotificationMarkAllAsReadView",
-    "FCMDeviceRegisterView"
+    "NotificationMarkAsReadView",
+    "AdminNotificationDeliveryListView",
 ]

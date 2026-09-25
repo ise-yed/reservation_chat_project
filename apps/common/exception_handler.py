@@ -18,6 +18,7 @@ from django.core.exceptions import (
 from django.db import DatabaseError, IntegrityError
 from django.db.models import ProtectedError
 from django.http import Http404
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.exceptions import (
     APIException,
@@ -125,10 +126,10 @@ def custom_exception_handler(exc, context):
         exc = DRFPermissionDenied(detail=str(exc) or "Permission denied.")
 
     elif isinstance(exc, (Http404, ObjectDoesNotExist)):
-        exc = DRFNotFound(detail="The requested object was not found.")
+        exc = DRFNotFound(detail=_("The requested object was not found."))
 
     elif isinstance(exc, DjangoBadRequest):
-        api_exc = APIException(detail=str(exc) or "Bad request.")
+        api_exc = APIException(detail=_("Bad request."))
         api_exc.status_code = status.HTTP_400_BAD_REQUEST
         api_exc.default_code = "bad_request"
         exc = api_exc
@@ -136,7 +137,7 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, SuspiciousOperation):
         logger.warning("Suspicious operation: %s", exc, exc_info=True)
 
-        api_exc = APIException(detail="Invalid request.")
+        api_exc = APIException(detail=_("Invalid request."))
         api_exc.status_code = status.HTTP_400_BAD_REQUEST
         api_exc.default_code = "suspicious_operation"
         exc = api_exc
@@ -144,7 +145,7 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, ProtectedError):
         logger.info("Protected object error: %s", exc, exc_info=True)
 
-        api_exc = APIException(detail="This object cannot be deleted because it is in use.")
+        api_exc = APIException(detail=_("This object cannot be deleted because it is in use."))
         api_exc.status_code = status.HTTP_409_CONFLICT
         api_exc.default_code = "protected_object"
         exc = api_exc
@@ -152,7 +153,7 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, IntegrityError):
         logger.info("Database integrity error: %s", exc, exc_info=True)
 
-        api_exc = APIException(detail="Database integrity error.")
+        api_exc = APIException(detail=_("Database integrity error."))
         api_exc.status_code = status.HTTP_409_CONFLICT
         api_exc.default_code = "integrity_error"
         exc = api_exc
@@ -160,7 +161,7 @@ def custom_exception_handler(exc, context):
     elif isinstance(exc, DatabaseError):
         logger.error("Database error: %s", exc, exc_info=True)
 
-        api_exc = APIException(detail="Database error.")
+        api_exc = APIException(detail=_("Database error."))
         api_exc.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         api_exc.default_code = "database_error"
         exc = api_exc
@@ -185,7 +186,7 @@ def custom_exception_handler(exc, context):
     normalized_errors = _stringify_error(data)
 
     if isinstance(exc, DRFValidationError):
-        message = "Invalid input provided."
+        message = _("Invalid input provided.")
         error_code = "validation_error"
         errors = normalized_errors
 
@@ -205,7 +206,7 @@ def custom_exception_handler(exc, context):
             errors = {"non_field_errors": normalized_errors}
 
     else:
-        message = "An error occurred."
+        message = _("An error occurred.")
         error_code = "generic_error"
         errors = normalized_errors
 

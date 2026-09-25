@@ -62,6 +62,7 @@ CHANNEL_LAYERS = {
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -74,7 +75,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "admin_panel"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -104,9 +105,17 @@ DATABASES = {
 AUTH_USER_MODEL = "users.User"
 
 # ── Internationalization ───────────────────────────
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+LANGUAGES = [
+    ("en", "English"),
+    ("fa", "Persian"),
+]
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 TIME_ZONE = "Asia/Tehran"
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
 
 # ── Static & Media ─────────────────────────────────
@@ -144,7 +153,7 @@ REST_FRAMEWORK = {
         "anon": "100/day",
         "user": "1000/day",
         "login": "5/min",
-        "register": "1/hour",
+        "register": "100/day",
         "password_reset": "3/hour",
         "password_reset_confirm": "3/hour",
         "password_change": "3/hour",
@@ -230,3 +239,7 @@ CACHES = {
         "TIMEOUT": 300,
     }
 }
+
+
+
+FIREBASE_CREDENTIALS_PATH = BASE_DIR / "secrets" / "firebase-adminsdk.json"

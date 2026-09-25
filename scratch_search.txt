@@ -1,0 +1,49 @@
+324:       <button class="btn btn-primary" onclick="openCreateUserModal()">➕ کاربر جدید</button>
+358:                   <button class="btn btn-ghost btn-sm" onclick='openEditUserModal(${JSON.stringify(u)})'>✏️ ویرایش</button>
+372: function openCreateUserModal() {
+395:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+396:     <button class="btn btn-primary" onclick="submitCreateUser()">ذخیره</button>
+449:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+450:     <button class="btn btn-primary" onclick="submitEditUser('${u.id}')">ذخیره</button>
+489:       <button class="btn btn-primary" onclick="openCreateOrgModal()">➕ سازمان جدید</button>
+503:                 <button class="btn btn-ghost btn-sm" onclick='openEditOrgModal(${JSON.stringify(o)})'>✏️</button>
+514: function openCreateOrgModal() {
+525:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+526:     <button class="btn btn-primary" onclick="submitCreateOrg()">ذخیره</button>
+566:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+567:     <button class="btn btn-primary" onclick="submitEditOrg('${o.id}')">ذخیره</button>
+614:       <button class="btn btn-primary" onclick="openCreateBranchModal('${selectedOrgId}')">➕ شعبه جدید</button>
+631:               <td><button class="btn btn-ghost btn-sm" onclick='openEditBranchModal(${JSON.stringify(b)})'>✏️</button></td>
+646: function openCreateBranchModal(orgId) {
+652:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+653:     <button class="btn btn-primary" onclick="submitCreateBranch('${orgId}')">ذخیره</button>
+683:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+684:     <button class="btn btn-primary" onclick="submitEditBranch('${b.id}')">ذخیره</button>
+723:       <button class="btn btn-primary" onclick="openCreateProviderModal()">➕ پزشک جدید</button>
+736:               <td><button class="btn btn-ghost btn-sm" onclick='openEditProviderModal(${JSON.stringify(p)})'>✏️</button></td>
+746: function openCreateProviderModal() {
+755:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+756:     <button class="btn btn-primary" onclick="submitCreateProvider()">ذخیره</button>
+788:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+789:     <button class="btn btn-primary" onclick="submitEditProvider('${p.id}')">ذخیره</button>
+828:       <button class="btn btn-primary" onclick="openCreateOfferingModal()">➕ خدمت جدید</button>
+842:               <td><button class="btn btn-ghost btn-sm" onclick='openEditOfferingModal(${JSON.stringify(o)})'>✏️</button></td>
+852: function openCreateOfferingModal() {
+871:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+872:     <button class="btn btn-primary" onclick="submitCreateOffering()">ذخیره</button>
+914:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+915:     <button class="btn btn-primary" onclick="submitEditOffering('${o.id}')">ذخیره</button>
+952:       <button class="btn btn-primary" onclick="openCreateCatModal()">➕ تخصص جدید</button>
+965:                 <button class="btn btn-ghost btn-sm" onclick='openEditCatModal(${JSON.stringify(c)})'>✏️</button>
+977: function openCreateCatModal() {
+982:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+983:     <button class="btn btn-primary" onclick="submitCreateCat()">ذخیره</button>
+1006:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+1007:     <button class="btn btn-primary" onclick="submitEditCat('${c.id}')">ذخیره</button>
+1050:       <button class="btn btn-primary" onclick="openCreateHolidayModal()">➕ تعطیلی جدید</button>
+1071: function openCreateHolidayModal() {
+1080:     <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+1081:     <button class="btn btn-primary" onclick="submitCreateHoliday()">ذخیره</button>
+1156:                 ${a.status==='pending'?`<button class="btn btn-ghost btn-sm" onclick="updateApptStatus('${a.id}','confirmed')">✅ تأیید</button>`:''}
+1158:                 ${a.status==='confirmed'?`<button class="btn btn-ghost btn-sm" onclick="updateApptStatus('${a.id}','completed')">🏁 تکمیل</button>`:''}
+1232:                 ${p.status==='pending' && p.method==='in_person'?`<button class="btn btn-ghost btn-sm" onclick="markPaid('${p.id}')">✅ نقدی پرداخت شد</button>`:''}

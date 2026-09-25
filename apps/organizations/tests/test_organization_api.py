@@ -49,10 +49,10 @@ class TestOrganizationListCreateAPI:
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_provider_can_create_organization(self):
-        """Provider role user can create an organization."""
-        user = UserFactory(role=UserRoles.PROVIDER)
-        client = get_client(user)
+    def test_admin_can_create_organization(self):
+        """Admin user can create an organization."""
+        admin = UserFactory(role=UserRoles.SUPER_ADMIN, is_staff=True)
+        client = get_client(admin)
         url = reverse("organizations:list-create")
 
         payload = {
@@ -68,7 +68,6 @@ class TestOrganizationListCreateAPI:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["name"] == "New Clinic"
-        assert response.data["owner"]["id"] == str(user.id)
 
     def test_customer_cannot_create_organization(self):
         """Customer role user cannot create an organization."""

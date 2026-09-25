@@ -1,0 +1,131 @@
+# Persian translation for reservation_chat_project
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: reservation_chat_project\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "A user with this email already exists."
+msgstr "این ایمیل قبلاً ثبت شده است."
+
+msgid "Passwords do not match."
+msgstr "رمزهای عبور مطابقت ندارند."
+
+msgid "Invalid email or password."
+msgstr "ایمیل یا رمز عبور نادرست است."
+
+msgid "This account is inactive."
+msgstr "این حساب کاربری غیرفعال است."
+
+msgid "Current password is incorrect."
+msgstr "رمز عبور فعلی نادرست است."
+
+msgid "User registered successfully."
+msgstr "ثبت‌نام با موفقیت انجام شد."
+
+msgid "Login successful."
+msgstr "ورود با موفقیت انجام شد."
+
+msgid "Successfully logged out."
+msgstr "با موفقیت خارج شدید."
+
+msgid "Token is invalid or already blacklisted."
+msgstr "توکن نامعتبر است یا قبلاً ابطال شده."
+
+msgid "If an account with this email exists, an OTP has been sent."
+msgstr "اگر این ایمیل ثبت شده باشد، کد OTP ارسال شد."
+
+msgid "Password has been reset successfully."
+msgstr "رمز عبور با موفقیت بازنشانی شد."
+
+msgid "An OTP has been sent to your email to confirm password change."
+msgstr "کد OTP به ایمیل شما ارسال شد تا تغییر رمز عبور تأیید شود."
+
+msgid "Password changed successfully."
+msgstr "رمز عبور با موفقیت تغییر یافت."
+
+msgid "Too many requests for this email. Please try again later."
+msgstr "درخواست‌های زیادی برای این ایمیل ارسال شده. بعداً تلاش کنید."
+
+msgid "Please wait 60 seconds before requesting a new code."
+msgstr "لطفاً ۶۰ ثانیه صبر کنید و سپس مجدداً درخواست دهید."
+
+msgid "OTP code has expired. Please request a new one."
+msgstr "کد OTP منقضی شده است. لطفاً کد جدید درخواست دهید."
+
+msgid "Too many failed attempts. Please request a new OTP."
+msgstr "تعداد تلاش‌های ناموفق زیاد است. لطفاً کد OTP جدید بخواهید."
+
+msgid "Invalid code. %(remaining)s attempts remaining."
+msgstr "کد نادرست است. %(remaining)s تلاش باقیمانده."
+
+msgid "Invalid request or expired OTP."
+msgstr "درخواست نامعتبر یا کد OTP منقضی شده."
+
+msgid "Invalid input provided."
+msgstr "اطلاعات ورودی نامعتبر است."
+
+msgid "An error occurred."
+msgstr "خطایی رخ داده است."
+
+msgid "The requested object was not found."
+msgstr "مورد درخواستی یافت نشد."
+
+msgid "Bad request."
+msgstr "درخواست نامعتبر است."
+
+msgid "Invalid request."
+msgstr "درخواست نامعتبر است."
+
+msgid "This object cannot be deleted because it is in use."
+msgstr "این مورد در حال استفاده است و نمی‌توان آن را حذف کرد."
+
+msgid "Database integrity error."
+msgstr "خطای یکپارچگی پایگاه داده."
+
+msgid "Database error."
+msgstr "خطای پایگاه داده."
+
+msgid "Branch name is required."
+msgstr "نام شعبه الزامی است."
+
+msgid "Branch name cannot be empty."
+msgstr "نام شعبه نمی‌تواند خالی باشد."
+
+msgid "Organization name is required."
+msgstr "نام سازمان الزامی است."
+
+msgid "Organization name cannot be empty."
+msgstr "نام سازمان نمی‌تواند خالی باشد."
+
+msgid "Offering title is required."
+msgstr "عنوان خدمت الزامی است."
+
+msgid "Offering title cannot be empty."
+msgstr "عنوان خدمت نمی‌تواند خالی باشد."
+
+msgid "Holiday title is required."
+msgstr "عنوان تعطیلی الزامی است."
+
+msgid "Holiday title cannot be empty."
+msgstr "عنوان تعطیلی نمی‌تواند خالی باشد."
+
+msgid "Invalid role. Choices: %(choices)s"
+msgstr "نقش نامعتبر است. گزینه‌های مجاز: %(choices)s"
+
+msgid "This password is too short. It must contain at least %(min_length)d character."
+msgid_plural "This password is too short. It must contain at least %(min_length)d characters."
+msgstr[0] "رمز عبور خیلی کوتاه است. باید حداقل %(min_length)d کاراکتر داشته باشد."
+
+msgid "This password is too common."
+msgstr "این رمز عبور خیلی رایج است."
+
+msgid "This password is entirely numeric."
+msgstr "رمز عبور نمی‌تواند فقط عددی باشد."
+
+msgid "The password is too similar to the %(verbose_name)s."
+msgstr "رمز عبور خیلی شبیه %(verbose_name)s است."

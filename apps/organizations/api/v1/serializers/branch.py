@@ -4,6 +4,7 @@ Serializers for Branch model.
 Handles validation and serialization for branch read, create, and update operations.
 """
 
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.organizations.models import Branch
@@ -51,7 +52,7 @@ class BranchCreateSerializer(serializers.ModelSerializer):
         """Validate that branch name is not empty or whitespace-only."""
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Branch name is required.")
+            raise serializers.ValidationError(_("Branch name is required."))
         return value
 
 
@@ -82,5 +83,5 @@ class BranchUpdateSerializer(serializers.ModelSerializer):
         if value is not None:
             value = value.strip()
             if not value:
-                raise serializers.ValidationError("Branch name cannot be empty.")
+                raise serializers.ValidationError(_("Branch name cannot be empty."))
         return value

@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.categories.api.v1.serializers import CategorySerializer
@@ -93,7 +94,7 @@ class OfferingCreateSerializer(serializers.Serializer):
         """Ensure title is not empty or just whitespace."""
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Offering title is required.")
+            raise serializers.ValidationError(_("Offering title is required."))
         return value
 
 
@@ -173,5 +174,5 @@ class OfferingUpdateSerializer(serializers.Serializer):
         """Ensure updated title is not empty or just whitespace."""
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Offering title cannot be empty.")
+            raise serializers.ValidationError(_("Offering title cannot be empty."))
         return value

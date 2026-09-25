@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.availability.api.v1.serializers.inline import (
@@ -36,7 +37,7 @@ class HolidayCreateSerializer(serializers.Serializer):
     def validate_title(self, value):
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Holiday title is required.")
+            raise serializers.ValidationError(_("Holiday title is required."))
         return value
 
 
@@ -50,5 +51,5 @@ class HolidayUpdateSerializer(serializers.Serializer):
     def validate_title(self, value):
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Holiday title cannot be empty.")
+            raise serializers.ValidationError(_("Holiday title cannot be empty."))
         return value

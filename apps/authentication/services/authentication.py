@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils.translation import gettext as _
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.authentication.services.otp import OTPService
@@ -54,7 +55,7 @@ def reset_password_with_otp(*, email: str, code: str, new_password: str) -> tupl
     """Verify OTP and reset password."""
     user = User.objects.filter(email__iexact=email, is_active=True).first()
     if not user:
-        return False, "Invalid request or expired OTP."
+        return False, _("Invalid request or expired OTP.")
 
     is_valid, error_msg = OTPService.verify_otp(user.id, code, purpose="password_reset")
     if not is_valid:

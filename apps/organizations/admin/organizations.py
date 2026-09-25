@@ -21,7 +21,6 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "slug",
         "owner",
         "phone_number",
         "email",
@@ -31,7 +30,6 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "created_at")
     search_fields = (
         "name",
-        "slug",
         "owner__email",
         "phone_number",
         "email",

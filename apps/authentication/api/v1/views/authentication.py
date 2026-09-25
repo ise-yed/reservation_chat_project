@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.utils.translation import gettext_lazy as _
 
 from apps.authentication.api.v1.docs import (
     login_schema,
@@ -61,7 +62,7 @@ class RegisterView(APIView):
 
         return Response(
             {
-                "message": "User registered successfully.",
+                "message": _("User registered successfully."),
                 "user": UserReadSerializer(user).data,
                 "tokens": tokens,
             },
@@ -84,7 +85,7 @@ class LoginView(APIView):
 
         return Response(
             {
-                "message": "Login successful.",
+                "message": _("Login successful."),
                 "user": UserReadSerializer(user).data,
                 "tokens": tokens,
             },
@@ -104,11 +105,11 @@ class LogoutView(APIView):
             logout_user(refresh_token=serializer.validated_data["refresh"])
         except Exception:
             return Response(
-                {"message": "Token is invalid or already blacklisted."},
+                {"message": _("Token is invalid or already blacklisted.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+        return Response({"message": _("Successfully logged out.")}, status=status.HTTP_200_OK)
 
 
 class RefreshTokenView(TokenRefreshView):
@@ -145,7 +146,7 @@ class PasswordResetRequestView(APIView):
         email = serializer.validated_data["email"].lower().strip()
         request_password_reset_otp(email=email)
         return Response(
-            {"message": "If an account with this email exists, an OTP has been sent."},
+            {"message": _("If an account with this email exists, an OTP has been sent.")},
             status=status.HTTP_200_OK,
         )
 
@@ -169,7 +170,7 @@ class PasswordResetConfirmView(APIView):
         if not success:
             return Response({"message": error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+        return Response({"message": _("Password has been reset successfully.")}, status=status.HTTP_200_OK)
 
 
 class PasswordChangeRequestView(APIView):
@@ -188,7 +189,7 @@ class PasswordChangeRequestView(APIView):
             return Response({"message": error_msg}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         return Response(
-            {"message": "An OTP has been sent to your email to confirm password change."},
+            {"message": _("An OTP has been sent to your email to confirm password change.")},
             status=status.HTTP_200_OK,
         )
 
@@ -212,4 +213,4 @@ class PasswordChangeConfirmView(APIView):
         if not success:
             return Response({"message": error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
+        return Response({"message": _("Password changed successfully.")}, status=status.HTTP_200_OK)

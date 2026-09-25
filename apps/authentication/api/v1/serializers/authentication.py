@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, password_validation
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.users.api.v1.serializers.users import UserReadSerializer
@@ -17,12 +18,12 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         value = value.lower().strip()
         if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+            raise serializers.ValidationError(_("A user with this email already exists."))
         return value
 
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
+            raise serializers.ValidationError({"password_confirm": _("Passwords do not match.")})
 
         temp_user = User(
             email=attrs.get("email"),
@@ -45,9 +46,9 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(request=self.context.get("request"), email=email, password=password)
 
         if not user:
-            raise serializers.ValidationError({"non_field_errors": ["Invalid email or password."]})
+            raise serializers.ValidationError({"non_field_errors": [_("Invalid email or password.")]})
         if not user.is_active:
-            raise serializers.ValidationError({"non_field_errors": ["This account is inactive."]})
+            raise serializers.ValidationError({"non_field_errors": [_("This account is inactive.")]})
 
         attrs["user"] = user
         return attrs
@@ -79,7 +80,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": ["Passwords do not match."]})
+            raise serializers.ValidationError({"new_password_confirm": [_("Passwords do not match.")]})
 
         # Validate password strength temporarily
         temp_user = User(email=attrs.get("email"))
@@ -104,10 +105,10 @@ class PasswordChangeConfirmSerializer(serializers.Serializer):
         user = self.context["request"].user
 
         if not user.check_password(attrs["current_password"]):
-            raise serializers.ValidationError({"current_password": ["Current password is incorrect."]})
+            raise serializers.ValidationError({"current_password": [_("Current password is incorrect.")]})
 
         if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError({"new_password_confirm": ["Passwords do not match."]})
+            raise serializers.ValidationError({"new_password_confirm": [_("Passwords do not match.")]})
 
         password_validation.validate_password(attrs["new_password"], user)
         return attrs

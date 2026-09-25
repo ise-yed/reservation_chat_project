@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پنل مدیریت | Clinic Admin</title>
+  <meta name="description" content="پنل مدیریت کلینیک — مدیریت کاربران، سازمان‌ها، پزشکان، نوبت‌ها و پرداخت‌ها" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'admin_panel/css/style.css' %}">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏥</div>
+      <div>
+        <div class="login-logo-text">Clinic Admin</div>
+        <div class="login-logo-sub">سیستم مدیریت کلینیک</div>
+      </div>
+    </div>
+    <div class="login-title">ورود به پنل مدیریت</div>
+    <div class="login-sub">با اکانت ادمین وارد شوید</div>
+    <div id="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">ایمیل</label>
+      <input id="login-email" type="email" class="form-control" placeholder="admin@example.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">رمز عبور</label>
+      <input id="login-password" type="password" class="form-control" placeholder="••••••••" />
+    </div>
+    <button class="btn-login" id="btn-login-submit" onclick="doLogin()">ورود</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div id="sidebar-logo">
+      <div class="logo-icon">🏥</div>
+      <div>
+        <div class="logo-text">Clinic Admin</div>
+        <div class="logo-sub">پنل مدیریت</div>
+      </div>
+    </div>
+    <nav id="sidebar-nav">
+      <div class="nav-group">
+        <div class="nav-group-label">داشبورد</div>
+        <div class="nav-item active" onclick="navigate('dashboard')">
+          <span class="nav-icon">📊</span> داشبورد
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">مدیریت</div>
+        <div class="nav-item" onclick="navigate('users')">
+          <span class="nav-icon">👥</span> کاربران
+        </div>
+        <div class="nav-item" onclick="navigate('organizations')">
+          <span class="nav-icon">🏢</span> سازمان‌ها
+        </div>
+        <div class="nav-item" onclick="navigate('branches')">
+          <span class="nav-icon">📍</span> شعب
+        </div>
+        <div class="nav-item" onclick="navigate('providers')">
+          <span class="nav-icon">👨‍⚕️</span> پزشکان
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">خدمات</div>
+        <div class="nav-item" onclick="navigate('offerings')">
+          <span class="nav-icon">📋</span> خدمات (Offerings)
+        </div>
+        <div class="nav-item" onclick="navigate('categories')">
+          <span class="nav-icon">🏷️</span> تخصص‌ها
+        </div>
+        <div class="nav-item" onclick="navigate('holidays')">
+          <span class="nav-icon">📅</span> تعطیلات سازمان
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">عملیات</div>
+        <div class="nav-item" onclick="navigate('appointments')">
+          <span class="nav-icon">🗓️</span> نوبت‌ها
+        </div>
+        <div class="nav-item" onclick="navigate('payments')">
+          <span class="nav-icon">💳</span> پرداخت‌ها
+        </div>
+        <div class="nav-item" onclick="navigate('notifications')">
+          <span class="nav-icon">🔔</span> لاگ نوتیفیکیشن
+        </div>
+      </div>
+    </nav>
+    <div id="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div class="user-info">
+          <div class="name" id="user-name">ادمین</div>
+          <div class="role" id="user-role">super_admin</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="main">
+    <header id="topbar">
+      <div id="topbar-title">داشبورد</div>
+      <div id="topbar-search">
+        <span>🔍</span>
+        <input type="text" placeholder="جستجوی سریع…" id="global-search" />
+      </div>
+      <button id="btn-logout" onclick="doLogout()">🚪 خروج</button>
+    </header>
+    <div id="page">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBackdrop(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">عنوان</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script src="{% static 'admin_panel/js/app.js' %}"></script>
+</body>
+</html>

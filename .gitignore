@@ -83,3 +83,7 @@ dist/
 *.crt
 *.p12
 *.pfx
+
+
+# Firebase and Credentials
+secrets/

@@ -4,6 +4,7 @@ Serializers for Organization model.
 Handles validation and serialization for organization read, create, and update operations.
 """
 
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -73,7 +74,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
         """Validate that organization name is not empty or whitespace-only."""
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Organization name is required.")
+            raise serializers.ValidationError(_("Organization name is required."))
         return value
 
 
@@ -114,5 +115,5 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
         if value is not None:
             value = value.strip()
             if not value:
-                raise serializers.ValidationError("Organization name cannot be empty.")
+                raise serializers.ValidationError(_("Organization name cannot be empty."))
         return value

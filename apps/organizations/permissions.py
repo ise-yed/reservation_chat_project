@@ -15,11 +15,7 @@ def can_create_organization(user) -> bool:
     if user.is_superuser:
         return True
 
-    return user.role in {
-        UserRoles.PROVIDER,
-        UserRoles.ORG_ADMIN,
-        UserRoles.SUPER_ADMIN,
-    }
+    return user.role == UserRoles.SUPER_ADMIN
 
 
 def can_manage_organization(user, organization) -> bool:
@@ -27,7 +23,7 @@ def can_manage_organization(user, organization) -> bool:
     if not user or not user.is_authenticated:
         return False
 
-    if user.is_superuser:
+    if user.is_superuser or user.role == UserRoles.SUPER_ADMIN:
         return True
 
     return organization.owner_id == user.id
