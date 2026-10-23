@@ -3,7 +3,7 @@ from rest_framework import serializers
 from apps.chat.enums import MessageType
 from apps.chat.models import Conversation, Message
 from apps.users.api.v1.serializers.users import UserReadSerializer
-
+from apps.chat.services.permissions import can_send_message
 
 class MessageReadSerializer(serializers.ModelSerializer):
     """Serializer for reading messages. Masks deleted message content."""
@@ -49,7 +49,18 @@ class ConversationReadSerializer(serializers.ModelSerializer):
     customer = UserReadSerializer(read_only=True)
     provider = UserReadSerializer(read_only=True)
     last_message = MessageReadSerializer(read_only=True)
+    patient_last_read_at = serializers.DateTimeField(
+        source="patient_last_read_message.created_at",
+        read_only=True,
+        allow_null=True,
+    )
+    doctor_last_read_at = serializers.DateTimeField(
+        source="doctor_last_read_message.created_at",
+        read_only=True,
+        allow_null=True,
+    )
     unread_count = serializers.SerializerMethodField()
+    can_send_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
@@ -60,14 +71,17 @@ class ConversationReadSerializer(serializers.ModelSerializer):
             "last_message",
             "patient_last_read_message",
             "doctor_last_read_message",
+            "patient_last_read_at",
+            "doctor_last_read_at",
             "unread_count",
+            "can_send_message",
             "created_at",
             "updated_at",
         )
 
     def get_unread_count(self, obj):
         request = self.context.get("request")
-        if not request or not request.user:
+        if not request or not request.user or not request.user.is_authenticated:
             return 0
 
         user = request.user
@@ -78,12 +92,22 @@ class ConversationReadSerializer(serializers.ModelSerializer):
         else:
             return 0
 
-        # محاسبه تعداد پیام‌های خوانده‌نشده
-        qs = Message.objects.filter(conversation=obj, is_deleted=False)
+        # فقط پیام‌های طرف مقابل شمرده می‌شوند (exclude(sender=user))
+        qs = Message.objects.filter(
+            conversation=obj,
+            is_deleted=False,
+        ).exclude(sender=user)
+
         if last_read:
             qs = qs.filter(created_at__gt=last_read.created_at)
 
         return qs.count()
+
+    def get_can_send_message(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        return can_send_message(conversation=obj, user=request.user)
 
 
 class ReadPointerUpdateSerializer(serializers.Serializer):

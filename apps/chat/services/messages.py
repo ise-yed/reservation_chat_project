@@ -89,16 +89,39 @@ def delete_message(*, message, actor) -> Message:
 
 
 @transaction.atomic
-def update_read_pointer(*, conversation, user, last_read_message) -> None:
+def update_read_pointer(*, conversation, user, last_read_message) -> bool:
     if last_read_message.conversation_id != conversation.id:
         raise ValidationError("Message does not belong to this conversation.")
 
+    updated = False
+
     if user == conversation.customer:
-        if not conversation.patient_last_read_message or conversation.patient_last_read_message.created_at < last_read_message.created_at:
+        if (
+            not conversation.patient_last_read_message
+            or conversation.patient_last_read_message.created_at < last_read_message.created_at
+        ):
             conversation.patient_last_read_message = last_read_message
-            conversation.save(update_fields=["patient_last_read_message", "updated_at"])
+            conversation.save(update_fields=["patient_last_read_message"])
+            updated = True
 
     elif user == conversation.provider:
-        if not conversation.doctor_last_read_message or conversation.doctor_last_read_message.created_at < last_read_message.created_at:
+        if (
+            not conversation.doctor_last_read_message
+            or conversation.doctor_last_read_message.created_at < last_read_message.created_at
+        ):
             conversation.doctor_last_read_message = last_read_message
-            conversation.save(update_fields=["doctor_last_read_message", "updated_at"])
+            conversation.save(update_fields=["doctor_last_read_message"])
+            updated = True
+
+    if updated:
+        from apps.chat.services.realtime import broadcast_read_receipt
+
+        transaction.on_commit(
+            lambda: broadcast_read_receipt(
+                conversation_id=conversation.id,
+                user_id=user.id,
+                last_read_message_id=last_read_message.id,
+            )
+        )
+
+    return updated

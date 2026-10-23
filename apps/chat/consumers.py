@@ -124,14 +124,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _update_read_pointer_in_db(self, message_id):
         try:
-            msg = Message.objects.get(id=message_id)
-            update_read_pointer(conversation=self.conversation, user=self.user, last_read_message=msg)
-
-            from apps.chat.services.realtime import broadcast_read_receipt
-            broadcast_read_receipt(
-                conversation_id=self.conversation.id,
-                user_id=self.user.id,
-                last_read_message_id=msg.id
+            msg = Message.objects.get(id=message_id, conversation_id=self.conversation_id)
+            update_read_pointer(
+                conversation=self.conversation,
+                user=self.user,
+                last_read_message=msg,
             )
         except Message.DoesNotExist:
             pass

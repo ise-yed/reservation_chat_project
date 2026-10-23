@@ -49,6 +49,7 @@ NOTIFICATION_EVENT_REGISTRY: dict[str, NotificationEventConfig] = {
         channels=(
             NotificationChannel.IN_APP,
             NotificationChannel.EMAIL,
+            NotificationChannel.PUSH,
         ),
         title="Appointment scheduled",
         message=(
@@ -73,6 +74,7 @@ NOTIFICATION_EVENT_REGISTRY: dict[str, NotificationEventConfig] = {
         channels=(
             NotificationChannel.IN_APP,
             NotificationChannel.EMAIL,
+            NotificationChannel.PUSH,
         ),
         title="Appointment confirmed",
         message=("Appointment for {offering_title} on {start_at_display} has been confirmed."),
@@ -92,6 +94,7 @@ NOTIFICATION_EVENT_REGISTRY: dict[str, NotificationEventConfig] = {
         channels=(
             NotificationChannel.IN_APP,
             NotificationChannel.EMAIL,
+            NotificationChannel.PUSH,
         ),
         title="Appointment cancelled",
         message=(
@@ -124,7 +127,10 @@ NOTIFICATION_EVENT_REGISTRY: dict[str, NotificationEventConfig] = {
     ),
     NotificationEvent.APPOINTMENT_REMINDER: NotificationEventConfig(
         notification_type=NotificationType.APPOINTMENT_REMINDER,
-        channels=(NotificationChannel.EMAIL,),
+        channels=(
+            NotificationChannel.EMAIL,
+            NotificationChannel.PUSH,
+        ),
         title="Appointment reminder",
         message="Reminder: appointment for {offering_title} starts at {start_at_display}.",
         email_subject="Appointment reminder",

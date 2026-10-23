@@ -7,7 +7,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost").split(",")
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
+    
 REDIS_CACHE_URL = config("REDIS_CACHE_URL", default="redis://localhost:6379/2")
 
 # ── Apps ──────────────────────────────────────────
@@ -149,16 +153,16 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/day",
-        "user": "1000/day",
-        "login": "5/min",
-        "register": "100/day",
-        "password_reset": "3/hour",
-        "password_reset_confirm": "3/hour",
-        "password_change": "3/hour",
-        "password_change_confirm": "3/hour",
-    },
+"DEFAULT_THROTTLE_RATES": {
+    "anon": "10000/day",
+    "user": "10000/day",
+    "login": "1000/min",
+    "register": "10000/day",
+    "password_reset": "1000/hour",
+    "password_reset_confirm": "1000/hour",
+    "password_change": "1000/hour",
+    "password_change_confirm": "1000/hour",
+},
 }
 
 # ── Simple JWT ─────────────────────────────────────
