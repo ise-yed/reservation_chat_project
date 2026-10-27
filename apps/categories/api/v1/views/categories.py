@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from django.core.cache import cache
 from rest_framework import filters, generics, permissions
 
@@ -27,26 +25,11 @@ class CategoryListView(generics.ListAPIView):
 
         cached_ids = cache.get(CATEGORY_LIST_CACHE_KEY)
 
-        if cached_ids is not None:
-            return Category.objects.filter(id__in=cached_ids, is_active=True)
-
-        queryset = list(Category.objects.filter(is_active=True))
+        qs = Category.objects.filter(is_active=True)
+        cached_ids = list(qs.values_list("id", flat=True))
         cache.set(
             CATEGORY_LIST_CACHE_KEY,
-            [category.id for category in queryset],
+            cached_ids,
             timeout=CATEGORY_LIST_CACHE_TIMEOUT,
         )
-        return queryset
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-
-        all_active = Category.objects.filter(is_active=True).only("id", "parent_id")
-
-        children_by_parent_id = defaultdict(list)
-        for category in all_active:
-            if category.parent_id is not None:
-                children_by_parent_id[category.parent_id].append(category)
-
-        context["children_by_parent_id"] = children_by_parent_id
-        return context
+        return qs

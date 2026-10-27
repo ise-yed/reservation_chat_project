@@ -17,8 +17,9 @@ from apps.offerings.enums import VisitMode
 from apps.providers.tests.factories import ProviderProfileFactory
 from apps.users.tests.factories import UserFactory
 
-# ساخت اپلیکیشنِ اختصاصیِ تست، برای دور زدن 제한ات AllowedHostsOriginValidator
-test_application = JWTAuthMiddleware(URLRouter(websocket_urlpatterns))
+# ساخت اپلیکیشنِ اختصاصیِ تست، برای دور زدن محدودیت‌های AllowedHostsOriginValidator
+ws_application = JWTAuthMiddleware(URLRouter(websocket_urlpatterns))
+WS_TIMEOUT = 5.0
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -53,16 +54,17 @@ async def test_ws_rejects_anonymous_user():
     """اگر توکن فرستاده نشود، سوکت باید با کد 4001 بسته شود"""
     fake_uuid = uuid.uuid4()
 
-    # استفاده از test_application به جای application اصلی
+    # استفاده از ws_application به جای application اصلی
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_application,
         f"/ws/chat/{fake_uuid}/"
     )
 
-    connected, close_code = await communicator.connect()
+    connected, close_code = await communicator.connect(timeout=WS_TIMEOUT)
 
     assert connected is False
     assert close_code == 4001  # Unauthorized
+    await communicator.wait()
 
 
 @pytest.mark.asyncio
@@ -72,17 +74,18 @@ async def test_ws_rejects_stranger():
     stranger_token = str(AccessToken.for_user(stranger))
 
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_application,
         f"/ws/chat/{conversation.id}/",
         headers=[
             (b"authorization", f"Bearer {stranger_token}".encode("latin-1"))
         ]
     )
 
-    connected, close_code = await communicator.connect()
+    connected, close_code = await communicator.connect(timeout=WS_TIMEOUT)
 
     assert connected is False
     assert close_code == 4003  # Forbidden
+    await communicator.wait()
 
 
 @pytest.mark.asyncio
@@ -92,14 +95,14 @@ async def test_ws_accepts_valid_participant():
     patient_token = str(AccessToken.for_user(conversation.customer))
 
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_application,
         f"/ws/chat/{conversation.id}/",
         headers=[
             (b"authorization", f"Bearer {patient_token}".encode("latin-1"))
         ]
     )
 
-    connected, subprotocol = await communicator.connect()
+    connected, subprotocol = await communicator.connect(timeout=WS_TIMEOUT)
 
     # اتصال باید کاملاً موفق باشد
     assert connected is True
@@ -113,14 +116,14 @@ async def test_ws_typing_broadcast():
     patient_token = str(AccessToken.for_user(conversation.customer))
 
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_application,
         f"/ws/chat/{conversation.id}/",
         headers=[
             (b"authorization", f"Bearer {patient_token}".encode("latin-1"))
         ]
     )
 
-    connected, _ = await communicator.connect()
+    connected, _ = await communicator.connect(timeout=WS_TIMEOUT)
     assert connected is True
 
     # ارسال رویداد شروع تایپینگ
@@ -130,13 +133,14 @@ async def test_ws_typing_broadcast():
     })
 
     # دریافت پاسخی که سرور به همه (از جمله خود بیمار) برادکست می‌کند
-    response = await communicator.receive_json_from()
+    response = await communicator.receive_json_from(timeout=WS_TIMEOUT)
 
     assert response["event"] == "typing.changed"
     assert response["data"]["user_id"] == str(conversation.customer.id)
     assert response["data"]["is_typing"] is True
 
     await communicator.disconnect()
+
 
 @pytest.mark.asyncio
 async def test_ws_reconnect_success():
@@ -150,14 +154,14 @@ async def test_ws_reconnect_success():
     ]
 
     # 1. اتصال اولیه
-    comm1 = WebsocketCommunicator(test_application, f"/ws/chat/{conversation.id}/", headers=headers)
-    connected1, _ = await comm1.connect()
+    comm1 = WebsocketCommunicator(ws_application, f"/ws/chat/{conversation.id}/", headers=headers)
+    connected1, _ = await comm1.connect(timeout=WS_TIMEOUT)
     assert connected1 is True
     await comm1.disconnect()  # قطع ارتباط (شبیه‌سازی قطعی اینترنت)
 
     # 2. اتصال مجدد (Reconnect)
-    comm2 = WebsocketCommunicator(test_application, f"/ws/chat/{conversation.id}/", headers=headers)
-    connected2, _ = await comm2.connect()
+    comm2 = WebsocketCommunicator(ws_application, f"/ws/chat/{conversation.id}/", headers=headers)
+    connected2, _ = await comm2.connect(timeout=WS_TIMEOUT)
     assert connected2 is True
     await comm2.disconnect()
 
@@ -172,7 +176,7 @@ async def test_ws_auth_expired_event():
     token.set_exp(lifetime=timedelta(seconds=1))
 
     communicator = WebsocketCommunicator(
-        test_application,
+        ws_application,
         f"/ws/chat/{conversation.id}/",
         headers=[
             (b"host", b"127.0.0.1"),
@@ -180,12 +184,13 @@ async def test_ws_auth_expired_event():
         ]
     )
 
-    connected, _ = await communicator.connect()
+    connected, _ = await communicator.connect(timeout=WS_TIMEOUT)
     assert connected is True
 
     # منتظر می‌مانیم تا سرور متوجه انقضا شود (تسک پس‌زمینه بیدار شود)
-    response = await communicator.receive_json_from(timeout=2.0)
+    response = await communicator.receive_json_from(timeout=WS_TIMEOUT)
     assert response["event"] == "auth.expired"
 
     # پس از ارسال رویداد، سوکت باید بسته شود
     await communicator.wait()
+

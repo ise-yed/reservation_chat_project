@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>پنل مدیریت | Clinic Admin</title>
-  <meta name="description" content="پنل مدیریت کلینیک — مدیریت کاربران، سازمان‌ها، پزشکان، نوبت‌ها و پرداخت‌ها" />
+  <meta name="description" content="پنل مدیریت کلینیک — مدیریت کاربران، سازمان‌ها، پزشکان، ساعات کاری، نوبت‌ها، چت و پرداخت‌ها" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{% static 'admin_panel/css/style.css' %}">
@@ -21,21 +21,21 @@
       <div class="login-logo-icon">🏥</div>
       <div>
         <div class="login-logo-text">Clinic Admin</div>
-        <div class="login-logo-sub">سیستم مدیریت کلینیک</div>
+        <div class="login-logo-sub">سیستم جامع مدیریت کلینیک و نوبت‌دهی</div>
       </div>
     </div>
     <div class="login-title">ورود به پنل مدیریت</div>
-    <div class="login-sub">با اکانت ادمین وارد شوید</div>
+    <div class="login-sub">با حساب کاربری ادمین وارد شوید</div>
     <div id="login-error"></div>
     <div class="form-group">
       <label class="form-label">ایمیل</label>
-      <input id="login-email" type="email" class="form-control" placeholder="admin@example.com" />
+      <input id="login-email" type="email" class="form-control dir-ltr" placeholder="admin@clinic.com" />
     </div>
     <div class="form-group">
       <label class="form-label">رمز عبور</label>
-      <input id="login-password" type="password" class="form-control" placeholder="••••••••" />
+      <input id="login-password" type="password" class="form-control dir-ltr" placeholder="••••••••" />
     </div>
-    <button class="btn-login" id="btn-login-submit" onclick="doLogin()">ورود</button>
+    <button class="btn-login" id="btn-login-submit" onclick="doLogin()">ورود به سیستم</button>
   </div>
 </div>
 
@@ -43,6 +43,8 @@
      MAIN APP
 ═══════════════════════════════════════════ -->
 <div id="app" style="display:none">
+
+  <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
   <!-- SIDEBAR -->
   <aside id="sidebar">
@@ -55,47 +57,56 @@
     </div>
     <nav id="sidebar-nav">
       <div class="nav-group">
-        <div class="nav-group-label">داشبورد</div>
-        <div class="nav-item active" onclick="navigate('dashboard')">
+        <div class="nav-group-label">نمای کلی</div>
+        <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
           <span class="nav-icon">📊</span> داشبورد
         </div>
       </div>
+
       <div class="nav-group">
-        <div class="nav-group-label">مدیریت</div>
-        <div class="nav-item" onclick="navigate('users')">
+        <div class="nav-group-label">مدیریت پایه</div>
+        <div class="nav-item" data-page="users" id="nav-users" onclick="navigate('users')">
           <span class="nav-icon">👥</span> کاربران
         </div>
-        <div class="nav-item" onclick="navigate('organizations')">
+        <div class="nav-item" data-page="organizations" onclick="navigate('organizations')">
           <span class="nav-icon">🏢</span> سازمان‌ها
         </div>
-        <div class="nav-item" onclick="navigate('branches')">
+        <div class="nav-item" data-page="branches" onclick="navigate('branches')">
           <span class="nav-icon">📍</span> شعب
         </div>
-        <div class="nav-item" onclick="navigate('providers')">
-          <span class="nav-icon">👨‍⚕️</span> پزشکان
-        </div>
-      </div>
-      <div class="nav-group">
-        <div class="nav-group-label">خدمات</div>
-        <div class="nav-item" onclick="navigate('offerings')">
-          <span class="nav-icon">📋</span> خدمات (Offerings)
-        </div>
-        <div class="nav-item" onclick="navigate('categories')">
+        <div class="nav-item" data-page="categories" onclick="navigate('categories')">
           <span class="nav-icon">🏷️</span> تخصص‌ها
         </div>
-        <div class="nav-item" onclick="navigate('holidays')">
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">پزشکان و زمان‌بندی</div>
+        <div class="nav-item" data-page="providers" onclick="navigate('providers')">
+          <span class="nav-icon">👨‍⚕️</span> پزشکان
+        </div>
+        <div class="nav-item" data-page="offerings" onclick="navigate('offerings')">
+          <span class="nav-icon">📋</span> خدمات (Offerings)
+        </div>
+        <div class="nav-item" data-page="availability" onclick="navigate('availability')">
+          <span class="nav-icon">⏰</span> ساعات کاری و مرخصی
+        </div>
+        <div class="nav-item" data-page="holidays" onclick="navigate('holidays')">
           <span class="nav-icon">📅</span> تعطیلات سازمان
         </div>
       </div>
+
       <div class="nav-group">
-        <div class="nav-group-label">عملیات</div>
-        <div class="nav-item" onclick="navigate('appointments')">
+        <div class="nav-group-label">عملیات و نظارت</div>
+        <div class="nav-item" data-page="appointments" onclick="navigate('appointments')">
           <span class="nav-icon">🗓️</span> نوبت‌ها
         </div>
-        <div class="nav-item" onclick="navigate('payments')">
+        <div class="nav-item" data-page="payments" onclick="navigate('payments')">
           <span class="nav-icon">💳</span> پرداخت‌ها
         </div>
-        <div class="nav-item" onclick="navigate('notifications')">
+        <div class="nav-item" data-page="chats" onclick="navigate('chats')">
+          <span class="nav-icon">💬</span> مکالمات چت (Read-Only)
+        </div>
+        <div class="nav-item" data-page="notifications" onclick="navigate('notifications')">
           <span class="nav-icon">🔔</span> لاگ نوتیفیکیشن
         </div>
       </div>
@@ -114,10 +125,12 @@
   <!-- MAIN -->
   <div id="main">
     <header id="topbar">
+      <button id="btn-menu-mobile" class="btn btn-ghost btn-icon" onclick="toggleSidebar()">☰</button>
       <div id="topbar-title">داشبورد</div>
       <div id="topbar-search">
         <span>🔍</span>
-        <input type="text" placeholder="جستجوی سریع…" id="global-search" />
+        <input type="text" placeholder="فیلتر سریع در صفحه فعلی…" id="global-search" oninput="onGlobalSearch(this.value)" />
+        <button id="global-search-clear" style="display:none;background:none;border:none;color:var(--textMuted);font-size:0.85rem" onclick="clearGlobalSearch()">✕</button>
       </div>
       <button id="btn-logout" onclick="doLogout()">🚪 خروج</button>
     </header>

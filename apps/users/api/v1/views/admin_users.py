@@ -3,10 +3,11 @@ Admin API views for User management.
 Accessible by: staff, org_admin, super_admin, Django superusers.
 """
 from rest_framework import filters, generics, status
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import IsSuperAdminUser
+from apps.common.permissions import IsAdminUser, IsSuperAdminUser
 from apps.users.api.v1.serializers.admin_users import (
     AdminUserCreateSerializer,
     AdminUserReadSerializer,
@@ -17,15 +18,19 @@ from apps.users.models import User
 
 class AdminUserListCreateView(generics.ListCreateAPIView):
     """
-    GET  /api/v1/admin/users/          — list + search + filter
-    POST /api/v1/admin/users/          — create a new user directly
+    GET  /api/v1/admin/users/          — list + search + filter (any admin role)
+    POST /api/v1/admin/users/          — create a new user directly (super_admin only)
     """
 
-    permission_classes = [IsSuperAdminUser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["email", "first_name", "last_name", "phone_number"]
     ordering_fields = ["email", "role", "created_at", "is_active"]
     ordering = ["-created_at"]
+
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return [IsAdminUser()]
+        return [IsSuperAdminUser()]
 
     def get_queryset(self):
         qs = User.objects.all()

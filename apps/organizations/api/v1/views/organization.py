@@ -4,11 +4,13 @@ API views for Organization endpoints.
 Handles listing, creating, retrieving, and updating organizations.
 """
 
+from django.db.models import Count, Q
 from django.http import Http404
 from rest_framework import generics, permissions, status
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
+from apps.common.permissions import is_super_admin
 from apps.organizations.api.v1.docs import (
     my_organizations_schema,
     organization_detail_schema,
@@ -42,6 +44,7 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
     View for listing and creating organizations.
 
     GET: Returns list of active organizations (authenticated users only).
+         Super admins may pass ?include_inactive=true to see all organizations.
     POST: Creates a new organization (provider/org_admin/super_admin only).
     """
 
@@ -55,7 +58,22 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        """Return only active organizations with annotated branch counts."""
+        """Return active organizations by default; all organizations if super_admin requests include_inactive=true."""
+        include_inactive = (
+            self.request.query_params.get("include_inactive", "").lower() == "true"
+        )
+        if include_inactive and is_super_admin(self.request.user):
+            return (
+                Organization.objects.all()
+                .select_related("owner")
+                .annotate(
+                    active_branches_count=Count(
+                        "branches",
+                        filter=Q(branches__is_active=True),
+                    )
+                )
+                .order_by("-created_at")
+            )
         return get_active_organizations()
 
     def get_serializer_class(self):

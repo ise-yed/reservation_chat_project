@@ -6,6 +6,9 @@ from apps.categories.models import Category
 class CategorySerializer(serializers.ModelSerializer):
     """Serializer for Category."""
 
+    icon = serializers.SerializerMethodField()
+    color = serializers.SerializerMethodField()
+    parent = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
 
     class Meta:
@@ -25,12 +28,15 @@ class CategorySerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "updated_at")
 
+    def get_icon(self, obj):
+        return None
+
+    def get_color(self, obj):
+        return None
+
+    def get_parent(self, obj):
+        return None
+
     def get_children(self, obj):
-        children_by_parent_id = self.context.get("children_by_parent_id")
+        return []
 
-        if children_by_parent_id is not None:
-            children = children_by_parent_id.get(obj.id, [])
-        else:
-            children = obj.children.filter(is_active=True)
-
-        return CategorySerializer(children, many=True, context=self.context).data
